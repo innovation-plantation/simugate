@@ -1,0 +1,473 @@
+import alu
+import circuit
+import functools
+import logic
+import tkinter
+
+
+def sample(pin):
+    return logic.buffn(pin.in_value)  # if not pin.bubble.inverted else logic.notfn(pin.in_value)
+
+
+def sample_pins(pins):
+    result = 0;
+    for n in range(len(pins)):
+        value = sample(pins[n])
+        if value in '1H':
+            result |= 1 << n
+        elif value not in '0L':
+            raise LookupError
+    return result
+
+
+def set_pins(pins, value):
+    for n in range(4):
+        pins[n].out_value = '1' if value & 1 << n else '0'
+
+
+triangle = (-40, -40, 40, 0, -40, 40)
+
+
+class Gate(circuit.Part):
+    def __init__(self, *args, label='', coords=triangle, fn=logic.buffn, init='X', inputs=[-2, 2], inverted=False,
+                 **kwargs):
+        super().__init__(*args, label=label, coords=coords, **kwargs)
+        self.i=[]
+        self.i = list(map(lambda y: self.add_pin(-65, y * 10, dx=25), inputs))
+        self.fn = fn
+        self.init = init
+        self.o = self.add_pin(x=65, dx=-25, inversion_listener=lambda: self.inversion_change(), inverted=inverted)
+
+    def operate(self):
+        if not self.i: return
+        x = map(lambda pin: sample(pin), self.i)
+        y = functools.reduce(self.fn, x, self.init)
+        self.o.out_value = y
+
+    def inversion_change(self):
+        print("Inversion changed")
+
+
+and_shape = -40, -40, -40, -40, 0, -40, 0, -40, 20, -40, 40, -20, 40, 0, 40, 20, 20, 40, 0, 40, 0, 40, -40, 40, -40, 40,
+
+
+class And(Gate):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, label='AND', coords=and_shape, fn=logic.andfn, init='1', smooth=True, **kwargs)
+
+    def inversion_change(self):
+        self.rename('NAND' if self.o.bubble.inverted else 'AND')
+
+
+or_shape = (-40, -20, -40, -30, -50, -40, -50, -40, -40, -40, -40, -40, 0, -40,
+            40, 0, 40, 0,
+            0, 40, -40, 40, -50, 40, -50, 40, -40, 30, -40, 20),
+
+
+class Or(Gate):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, label='OR', coords=or_shape, fn=logic.orfn, init='0', smooth=True, **kwargs)
+
+    def inversion_change(self):
+        self.rename('NOR' if self.o.bubble.inverted else 'OR')
+
+
+class Xor(Gate):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, label='XOR', coords=or_shape, fn=logic.xorfn, init='0', smooth=True, **kwargs)
+        x, y = self.xy
+        self.canvas.create_line(x - 60, y - 40, x - 60, y - 38, x - 50, y - 30, x - 50, y + 30, x - 60, y + 38, x - 60,
+                                y + 40, smooth=True, fill='black', width=5, state='disabled', tags=self.group)
+
+    def inversion_change(self):
+        self.rename('XNOR' if self.o.bubble.inverted else 'XOR')
+
+
+class Not(Gate):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, label='NOT', fn=logic.orfn, init='0', inputs=[0], inverted=True, **kwargs)
+
+    def inversion_change(self):
+        self.rename('NOT' if self.o.bubble.inverted else '')
+
+
+class Tri(Gate):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, inputs=[0], **kwargs)
+        self.e = self.add_pin(x=0, y=45, dy=-25)
+
+    def operate(self):
+        i = sample(self.i[0])
+        e = sample(self.e)
+        self.o.out_value = i if e == '1' else 'Z' if e == '0' else 'X'
+
+
+diag_diode_shape = (2, 2, 6, -2, 8, 0, 0, 8, -2, 6, 2, 2, -8, 0, 0, -8)
+diode_shape = (4, 0, 4, 6, 7, 6, 7, -6, 4, -6, 4, 0, -7, 6, -7, -6)  # 0, 8, -2, 6, 2, 2, -8, 0, 0, -8)
+
+
+class Diode(circuit.Part):
+    def __init__(self, *args, diag=False, **kwargs):
+        super().__init__(*args, label='', coords=diag_diode_shape if diag else diode_shape, fill='brown', **kwargs)
+        if diag:
+            self.a = self.add_pin(-15, -15, dx=10, dy=10, invertible=False)  # annode
+            self.c = self.add_pin(15, 15, dx=-10, dy=-10, invertible=False)  # cathode
+        else:
+            self.a = self.add_pin(-20, 0, dx=12, invertible=False)  # annode
+            self.c = self.add_pin(20, 0, dx=-12, invertible=False)  # cathode
+
+    def operate(self):
+        a = logic.dianfn(self.a.in_value, self.c.in_value)
+        c = logic.dicafn(self.a.in_value, self.c.in_value)
+        self.a.out_value = a
+        self.c.out_value = c
+
+
+class Pullup(circuit.Part):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, label='', coords=(-10, -60, 10, -70), width=7, outline=logic.color['H'], **kwargs)
+        x, y = self.xy
+        self.canvas.create_line(x + 0, y - 20, x - 5, y - 25, x + 5, y - 30, x - 5, y - 35, x + 5, y - 40, x - 5,
+                                y - 45, x + 5, y - 50, x + 0, y - 55, x + 0, y - 65, width=3, fill=logic.color['H'],
+                                tags=(self.group, self.shape))
+        self.o = self.add_pin(0, 0, dy=-20, invertible=False)
+
+    def operate(self):
+        self.o.out_value = 'H'
+
+
+class Pulldown(circuit.Part):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, label='', coords=(-10, 65, 10, 65, 0, 75), fill=logic.color['0'], **kwargs)
+        x, y = self.xy
+        self.canvas.create_line(x + 0, y + 20, x - 5, y + 25, x + 5, y + 30, x - 5, y + 35, x + 5, y + 40, x - 5,
+                                y + 45, x + 5, y + 50, x + 0, y + 55, x + 0, y + 65, width=3, fill=logic.color['L'],
+                                tags=(self.group, self.shape))
+        self.o = self.add_pin(0, 0, dy=20, invertible=False)
+
+    def operate(self):
+        self.o.out_value = 'L'
+
+
+class Source(circuit.Part):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, label='', coords=(-10, -15, 10, -25), width=7, outline=logic.color['1'], **kwargs)
+        self.o = self.add_pin(0, 0, dy=-20, invertible=False)
+
+    def operate(self):
+        self.o.out_value = '1'
+
+
+class Ground(circuit.Part):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, label='', coords=(-10, 20, -10, 20, 10, 20, 10, 20, 0, 30, 0, 30),
+                         fill=logic.color['0'], **kwargs)
+        self.o = self.add_pin(0, 0, dy=20, invertible=False)
+
+    def operate(self):
+        self.o.out_value = '0'
+
+
+class NPN(circuit.Part):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, label='', coords=(17, 0, -10, 27, -37, 0, -10, -27, 17, 0,), smooth=True, **kwargs)
+        x, y = self.xy
+        self.btag, self.etag, self.ctag = '%s_B' % self.id, '%s_E' % self.id, '%s_C' % self.id
+        self.canvas.create_line(x, y - 15, x - 17, y - 5, width=4, tags=(self.group, self.ctag), state='disabled')  # c
+        self.canvas.create_line(x - 17, y + 5, x, y + 15, width=3, tags=(self.group, self.etag), state='disabled',
+                                arrow=tkinter.LAST)  # e
+        self.canvas.create_line(x - 17, y - 10, x - 17, y + 10, width=6, tags=(self.group, self.btag),
+                                state='disabled')  # b
+        self.canvas.create_line(x - 70, y, x - 65, y - 5, x - 60, y + 5, x - 55, y - 5, x - 50, y + 5, x - 45, y - 5,
+                                x - 40, y + 5, x - 35, y, x - 17, y, width=3,
+                                tags=(self.group, self.shape, self.btag))  # r
+        self.b = self.add_pin(x=-90, y=0, dx=20, invertible=False)
+        self.c = self.add_pin(x=0, y=-35, dy=20, invertible=False)
+        self.e = self.add_pin(x=0, y=35, dy=-20, invertible=False)
+
+    def operate(self):
+        if not hasattr(self,'e'): return
+        self.c.out_value = logic.npnfn(self.e.in_value, self.b.in_value)
+        self.canvas.itemconfig(self.btag, fill=logic.color[self.b.in_value])
+        self.canvas.itemconfig(self.etag, fill=logic.color[self.e.in_value])
+        self.canvas.itemconfig(self.ctag, fill=logic.color[self.c.out_value])
+
+
+class PNP(circuit.Part):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, label='', coords=(17, 0, -10, 27, -37, 0, -10, -27, 17, 0,), outline=logic.color['H'],
+                         smooth=True, **kwargs)
+        x, y = self.xy
+        self.btag, self.etag, self.ctag = '%s_B' % self.id, '%s_E' % self.id, '%s_C' % self.id
+        self.canvas.create_line(x, y - 15, x - 17, y - 5, width=3, tags=(self.group, self.etag), state='disabled',
+                                arrow=tkinter.LAST)  # e
+        self.canvas.create_line(x - 17, y + 5, x, y + 15, width=4, tags=(self.group, self.ctag), state='disabled')  # c
+        self.canvas.create_line(x - 17, y - 10, x - 17, y + 10, width=6, tags=(self.group, self.btag),
+                                state='disabled')  # b
+        self.canvas.create_line(x - 70, y, x - 65, y - 5, x - 60, y + 5, x - 55, y - 5, x - 50, y + 5, x - 45, y - 5,
+                                x - 40, y + 5, x - 35, y, x - 17, y, width=3,
+                                tags=(self.group, self.shape, self.btag))  # r
+        self.b = self.add_pin(x=-90, y=0, dx=20, invertible=False)
+        self.e = self.add_pin(x=0, y=-35, dy=20, invertible=False)
+        self.c = self.add_pin(x=0, y=35, dy=-20, invertible=False)
+
+    def operate(self):
+        self.c.out_value = logic.pnpfn(self.e.in_value, self.b.in_value)
+        self.canvas.itemconfig(self.btag, fill=logic.color[self.b.in_value])
+        self.canvas.itemconfig(self.etag, fill=logic.color[self.e.in_value])
+        self.canvas.itemconfig(self.ctag, fill=logic.color[self.c.out_value])
+
+
+class Box(circuit.Part):
+    def __init__(self, *args, width=4, height=4, vpad=2, hpad=1, **kwargs):
+        self.width, self.height = 10 * (hpad + width), 10 * (vpad + height)
+        self.vpad, self.hpad = vpad, hpad
+        coords = -self.width, -self.height, self.width, -self.height, self.width, self.height, -self.width, self.height
+        super().__init__(*args, coords=coords, **kwargs)
+        self.left_pins, self.bottom_pins, self.right_pins = [], [], []
+
+    def create_pins(self, names, add_pin):
+        pins = []
+        for n in range(len(names)):
+            if names[n] is None: continue
+            pins.append(add_pin(names[n], (len(names) * 10) - n * 20 - 10))
+        return pins
+
+    def create_left_pin(self, name='', y=0, **kw_args):
+        return self.add_pin(-self.width - 25, y, dx=25, label=name, **kw_args)
+
+    def create_right_pin(self, name='', y=0, **kw_args):
+        return self.add_pin(self.width + 25, y, dx=-25, label=name, **kw_args)
+
+    def create_bottom_pin(self, name='', x=0, **kw_args):
+        return self.add_pin(x, self.height + 25, dy=-25, label=name, **kw_args)
+
+    def create_left_pins(self, names):
+        return self.create_pins(names, self.create_left_pin)
+
+    def create_right_pins(self, names):
+        return self.create_pins(names, self.create_right_pin)
+
+    def create_bottom_pins(self, names):
+        return self.create_pins(names, self.create_bottom_pin)
+
+
+class Decoder(Box):
+    def __init__(self, *args, bits=2, **kwargs):
+        w, h = bits, 2 ** bits
+        super().__init__(*args, width=w, height=h, label='', **kwargs)
+        self.i = self.create_bottom_pins(['s%d' % 2 ** n for n in range(w)])
+        self.o = self.create_right_pins(([n for n in range(h)]))
+
+    def operate(self):
+        try:
+            value = sample_pins(self.i)
+            for n in range(len(self.o)): self.o[n].out_value = '1' if n == value else '0'
+        except LookupError:
+            for n in range(len(self.o)): self.o[n].out_value = 'X'
+
+
+class Mux(Box):
+    def __init__(self, *args, bits=2, **kwargs):
+        w, h = bits, 2 ** bits
+        super().__init__(*args, label='MUX', height=h, width=w, **kwargs)
+        self.i = self.create_left_pins([n for n in range(h)])
+        self.a = self.create_bottom_pins(['s%d' % 2 ** n for n in range(w)])
+        self.o = self.create_right_pin()
+
+    def operate(self):
+        try:
+            value = sample_pins(self.a)
+            self.o.out_value = logic.buffn(self.i[value].in_value)
+        except LookupError:
+            self.o.out_value = 'X'
+
+
+class DMux(Box):
+    def __init__(self, *args, bits=2, **kwargs):
+        w, h = bits, 2 ** bits
+        super().__init__(*args, label='DMUX', height=h, width=w, **kwargs)
+        self.o = self.create_right_pins([n for n in range(h)])
+        self.a = self.create_bottom_pins(['s%d' % 2 ** n for n in range(w)])
+        self.i = self.create_left_pin()
+
+    def operate(self):
+        try:
+            value = sample_pins(self.a)
+            for n in range(len(self.o)): self.o[n].out_value = logic.buffn(self.i.in_value) if n == value else '0'
+        except LookupError:
+            for n in range(len(self.o)): self.o[n].out_value = 'X'
+
+
+class Latch(Box):
+    def __init__(self, *args, bits=4, **kwargs):
+        w, h = 1, bits
+        super().__init__(*args, label='', height=h, width=1, vpad=0, **kwargs)
+        self.i = self.create_left_pins(['' for n in range(h)])
+        self.o = self.create_right_pins(['' for n in range(h)])
+        self.m = ['X'] * h
+        self.clk = self.create_bottom_pin('^')
+        self.old_clk = 'X'
+
+    def operate(self):
+        clk = sample(self.clk)
+        if self.old_clk == '0' and clk == '1':
+            for bit in range(4):
+                self.m[bit] = logic.buffn(self.i[bit].in_value)
+        self.old_clk = clk
+        for bit in range(4):
+            self.o[bit].out_value = self.m[bit]
+
+
+class SR_flipflop(Box):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, height=3, width=2, label='')
+        self.s, self.r = self.create_left_pins(['S', None, 'R'])
+        self.q2, self.q1 = self.create_right_pins(['-Q', None, 'Q'])
+        self.m1, self.m2 = 'X', 'X'
+
+    def operate(self):
+        s = sample(self.s)
+        r = sample(self.r)
+        self.m1, self.m2 = logic.norfn(r, self.m2), logic.norfn(s, self.m1)
+        self.q1.out_value = self.m1
+        self.q2.out_value = logic.notfn(self.m2)
+
+
+class D_flipflop(Box):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, width=2, height=3, **kwargs, label='')
+        self.clk, self.d = self.create_left_pins(['Clk', None, 'D'])
+        self.q2, self.q1 = self.create_right_pins(['-Q', None, 'Q'])
+        self.m = 'X'
+
+    def operate(self):
+        d, clk = sample(self.d), sample(self.clk)
+        self.m = d if clk == '1' or d == self.m else self.m if clk == '0' else 'X'
+        self.q1.out_value = self.q2.out_value = self.m
+
+
+class D_edge(Box):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, width=1, height=2, label='')
+        self.clk = self.create_bottom_pin('^')
+        self.d = self.create_left_pin('D')
+        self.q = self.create_right_pin('')
+        self.old_clk = 'X'
+        self.m = 'X'
+
+    def operate(self):
+        d = sample(self.d)
+        clk = sample(self.clk)
+        if self.old_clk == '0' and clk == '1': self.m = d
+        self.q.out_value = self.m
+        self.old_clk = clk
+
+
+class Adder(circuit.Part):
+    def __init__(self, *args, **kwargs):
+        coords = -40, -100, 40, -60, 40, 60, -40, 100, -40, 10, -30, 0, -40, -10
+        super().__init__(*args, label='', coords=coords, **kwargs)
+        self.a, self.b, self.o = [], [], []
+        for bit in range(4):
+            self.a.append(self.add_pin(-65, 0 - bit * 20 - 25, dx=25, label='a%d' % bit if bit % 4 == 3 else ''))
+            self.b.append(self.add_pin(-65, 110 - bit * 20 - 25, dx=25, label='b%d' % bit if bit % 4 == 3 else ''))
+            self.o.append(self.add_pin(65, 90 - bit * 20 - 15 - 25, dx=-25))
+        self.c = self.add_pin(65, 90 - 5 * 20 - 15 - 25, dx=-25)
+
+    def operate(self):
+        try:
+            a = sample_pins(self.a)
+            b = sample_pins(self.b)
+            total = a + b
+            self.c.out_value = '1' if total & 0x10 else '0'
+            set_pins(self.o, total)
+            # for n in range(4):
+            #     self.o[n].out_value = '1' if total & 2 ** n else '0'
+        except LookupError:
+            self.c.out_value = 'X'
+            for n in range(4):
+                self.o[n].out_value = 'X'
+
+
+class ALU(Adder):
+    #  16 functions such as ADD SUB ADC SBC  SLC SRC RLC RRC  AND OR XOR NOT  XFER STC CMC CLR
+    def __init__(self, *args, width=4, height=4, pad=1, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.f = []
+        for bit in range(4):
+            x = 30 - 20 * bit
+            y = 120
+            self.f.append(self.add_pin(x, y, dy=-15 - 10 * (4 - bit), label='s%d' % 2 ** bit))
+        self.old_c = 'X'
+
+    def operate(self):
+        try:
+            try:
+                f = sample_pins(self.f)
+                txt, argc = alu.alu_info(f)
+                self.rename(txt)
+            except LookupError:
+                self.rename('')
+                raise
+            a = sample_pins(self.a) if argc > 0 else 0
+            b = sample_pins(self.b) if argc > 1 else 0
+            r, c = alu.alu_fn(f, a, b, 4)
+            set_pins(self.o, r)
+            if c is None:
+                self.c.out_value = self.old_c
+            else:
+                self.old_c = self.c.out_value = '1' if c else '0'
+            print(txt, r)
+        except LookupError:
+            self.c.out_value = 'X'
+            for n in range(4):
+                self.o[n].out_value = 'X'
+
+
+class Counter(Box):
+    def __init__(self, *args, bits=4, **kwargs):
+        w, h = 1, bits
+        super().__init__(*args, label='', height=h, width=1, **kwargs)
+        self.i = self.create_left_pins(['' for n in range(h)])
+        self.o = self.create_right_pins(['' for n in range(h)])
+        self.value = -1
+        self.clk, self.ld = self.create_bottom_pins(['^', 'LD'])
+        self.old_clk = 'X'
+
+    def operate(self):
+        clk = sample(self.clk)
+        ld = sample(self.ld)
+        if clk in 'ZXWU':
+            self.value = -1
+        elif self.old_clk == '0' and clk == '1':
+            if ld in 'H1':
+                try:
+                    self.value = sample_pins(self.i)
+                except LookupError:
+                    self.value = -1
+            elif ld in 'L0':
+                if self.value >= 0: self.value += 1
+            else:
+                self.value = -1
+        if self.value >= 0:
+            set_pins(self.o, self.value)
+        else:
+            for bit in range(4):
+                self.o[bit].out_value = 'X'
+        self.old_clk = clk
+
+
+class Clock(Box):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, label='Clock', height=0, width=1, **kwargs)
+        self.o = self.create_right_pin('')
+        self.value = '0'
+        circuit.Figure.default_canvas.after(1000, lambda: self.tick())
+
+    def tick(self):
+        self.value = '1' if self.value == '0' else '0'
+        circuit.Figure.default_canvas.after(1000, lambda: self.tick())
+
+    def operate(self):
+        self.o.out_value = self.value
