@@ -39,6 +39,7 @@ class Gate(circuit.Part):
         self.o = self.add_pin(x=65, dx=-25, inversion_listener=lambda: self.inversion_change(), inverted=inverted)
 
     def operate(self):
+        if not hasattr(self,'o'): return
         if not self.i: return
         x = map(lambda pin: sample(pin), self.i)
         y = functools.reduce(self.fn, x, self.init)
@@ -97,6 +98,7 @@ class Tri(Gate):
         self.e = self.add_pin(x=0, y=45, dy=-25)
 
     def operate(self):
+        if not hasattr(self,'e'): return
         i = sample(self.i[0])
         e = sample(self.e)
         self.o.out_value = i if e == '1' else 'Z' if e == '0' else 'X'
@@ -212,6 +214,7 @@ class PNP(circuit.Part):
         self.c = self.add_pin(x=0, y=35, dy=-20, invertible=False)
 
     def operate(self):
+        if not hasattr(self,'c'): return
         self.c.out_value = logic.pnpfn(self.e.in_value, self.b.in_value)
         self.canvas.itemconfig(self.btag, fill=logic.color[self.b.in_value])
         self.canvas.itemconfig(self.etag, fill=logic.color[self.e.in_value])
@@ -260,6 +263,7 @@ class Decoder(Box):
         self.o = self.create_right_pins(([n for n in range(h)]))
 
     def operate(self):
+        if not hasattr(self,'o'): return
         try:
             value = sample_pins(self.i)
             for n in range(len(self.o)): self.o[n].out_value = '1' if n == value else '0'
@@ -276,6 +280,7 @@ class Mux(Box):
         self.o = self.create_right_pin()
 
     def operate(self):
+        if not hasattr(self,'a'): return
         try:
             value = sample_pins(self.a)
             self.o.out_value = logic.buffn(self.i[value].in_value)
@@ -292,10 +297,11 @@ class DMux(Box):
         self.i = self.create_left_pin()
 
     def operate(self):
+        if not hasattr(self,'o'):return
         try:
             value = sample_pins(self.a)
             for n in range(len(self.o)): self.o[n].out_value = logic.buffn(self.i.in_value) if n == value else '0'
-        except LookupError:
+        except (AttributeError,LookupError):
             for n in range(len(self.o)): self.o[n].out_value = 'X'
 
 
@@ -310,6 +316,7 @@ class Latch(Box):
         self.old_clk = 'X'
 
     def operate(self):
+        if not hasattr(self,'clk'): return
         clk = sample(self.clk)
         if self.old_clk == '0' and clk == '1':
             for bit in range(4):
@@ -327,6 +334,7 @@ class SR_flipflop(Box):
         self.m1, self.m2 = 'X', 'X'
 
     def operate(self):
+        if not hasattr(self,'m2'): return
         s = sample(self.s)
         r = sample(self.r)
         self.m1, self.m2 = logic.norfn(r, self.m2), logic.norfn(s, self.m1)
@@ -342,6 +350,7 @@ class D_flipflop(Box):
         self.m = 'X'
 
     def operate(self):
+        if not hasattr(self,'m'): return
         d, clk = sample(self.d), sample(self.clk)
         self.m = d if clk == '1' or d == self.m else self.m if clk == '0' else 'X'
         self.q1.out_value = self.q2.out_value = self.m
@@ -357,6 +366,7 @@ class D_edge(Box):
         self.m = 'X'
 
     def operate(self):
+        if not hasattr(self,'d'): return
         d = sample(self.d)
         clk = sample(self.clk)
         if self.old_clk == '0' and clk == '1': self.m = d
@@ -376,14 +386,13 @@ class Adder(circuit.Part):
         self.c = self.add_pin(65, 90 - 5 * 20 - 15 - 25, dx=-25)
 
     def operate(self):
+        if not hasattr(self,'c'): return
         try:
             a = sample_pins(self.a)
             b = sample_pins(self.b)
             total = a + b
             self.c.out_value = '1' if total & 0x10 else '0'
             set_pins(self.o, total)
-            # for n in range(4):
-            #     self.o[n].out_value = '1' if total & 2 ** n else '0'
         except LookupError:
             self.c.out_value = 'X'
             for n in range(4):
@@ -402,6 +411,7 @@ class ALU(Adder):
         self.old_c = 'X'
 
     def operate(self):
+        if not hasattr(self,'c'): return
         try:
             try:
                 f = sample_pins(self.f)
@@ -419,7 +429,7 @@ class ALU(Adder):
             else:
                 self.old_c = self.c.out_value = '1' if c else '0'
             print(txt, r)
-        except LookupError:
+        except (AttributeError,LookupError):
             self.c.out_value = 'X'
             for n in range(4):
                 self.o[n].out_value = 'X'
@@ -436,6 +446,7 @@ class Counter(Box):
         self.old_clk = 'X'
 
     def operate(self):
+        if not hasattr(self,'clk'): return
         clk = sample(self.clk)
         ld = sample(self.ld)
         if clk in 'ZXWU':
@@ -470,4 +481,19 @@ class Clock(Box):
         circuit.Figure.default_canvas.after(1000, lambda: self.tick())
 
     def operate(self):
+        if not hasattr(self,'o'): return
         self.o.out_value = self.value
+
+
+class OCLatch(Latch):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, height=0, width=1, **kwargs)
+        self.oc=True
+
+class OCBuf(Gate):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, label='', fn=logic.orfn, init='0', inputs=[0], **kwargs)
+        self.oc=True
+
+    def inversion_change(self):
+        self.rename('NOT' if self.o.bubble.inverted else '')

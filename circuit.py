@@ -30,7 +30,7 @@ class Item:
         return result
 
     def __init__(self):
-        typename = type(self).__name__ + "_1"
+        typename = type(self).__name__
         self.id = autonum.get(typename)
         self.typename = autonum.rootword(typename)
         if self.typename not in Item.instances: Item.instances[self.typename] = []
@@ -266,9 +266,20 @@ class Pin(Figure):
     stiffness = 1
 
     @property
+    def oc(self):
+        return self._oc if hasattr(self,'_oc') else None
+    @oc.setter
+    def oc(self,value):
+        self._oc = value
+
+    @property
     def inverted(self):
         if self.bubble:
             return self.bubble.inverted
+    @inverted.setter
+    def inverted(self,value):
+        if self.bubble:
+            self.bubble.inverted = value
 
     @property
     def in_value(self):
@@ -309,10 +320,12 @@ class Pin(Figure):
     def __init__(self, x=0, y=0, dx=0, dy=0, scale=(.4, .4), smooth=True, fill='black',
                  edge_triggered=False, canvas=None, label='', inverted=False, invertible=True, input='Z', output='Z',
                  inversion_listener=None, parent=None, **kwargs):
+        self.invertible = invertible
         self.bubble=None
         super().__init__(x, y, canvas=canvas, fill=fill, scale=scale, smooth=smooth, **kwargs)
         self._in_value = 'Z'
         self._out_value = 'Z'
+        self._oc = False
         self.line = self.id + '_line'
         self.canvas.create_line(x, y, x + dx, y + dy, tags=(self.group, self.line))
         self._out_value = output
@@ -354,7 +367,12 @@ class Pin(Figure):
 
     def operate_output(self):
         self.in_value = 'Z'
-        if self.inverted:
+        if self.oc:
+            if self.inverted:
+                self.out_value = '0' if self.out_value in '1H' else 'Z' if self.out_value in '0L' else self.out_value
+            else:
+                self.out_value = 'Z' if self.out_value in '1H' else '1' if self.out_value in '0L' else self.out_value
+        elif self.inverted:
             self.out_value = '0' if self.out_value in '1H' else '1' if self.out_value in '0L' else self.out_value
 
     def mouse_down(self, event):
@@ -446,6 +464,25 @@ class Part(Figure):
     allparts = []
 
     @property
+    def oc(self):
+        return self._oc
+    @oc.setter
+    def oc(self,value):
+        import tkinter.font
+        if not any(item.invertible for item in self.children): value = False
+        if self._oc == value: return
+        self._oc = value
+
+        name = self.canvas.itemconfig(self.label)['text'][4]
+        if value:
+            self.oc_text = self.canvas.create_text(*self.xy, text="\n◇" if name else "◇", font=tkinter.font.Font(weight='bold', size=12, underline=1), tags=self.group)
+            self.canvas.itemconfig(self.label, text=name.strip()+'\n')
+        else:
+            self.canvas.delete(self.oc_text)
+            if name: self.canvas.itemconfig(self.label,text=name.strip())
+        for o in self.children: o.oc = value
+
+    @property
     def orientation(self):
         x100 = list(map(int,self.canvas.coords(self.x100)))
         y100 = list(map(int,self.canvas.coords(self.y100)))
@@ -466,10 +503,20 @@ class Part(Figure):
             self.canvas.coords(item,coords)
 
     def rename(self, text):
-        self.canvas.itemconfig(self.label, text=text)
+        if self.oc and text:
+            self.canvas.itemconfig(self.label, text="%s\n"%text )
+            self.canvas.itemconfig(self.oc_text, text="\n◇")
+        elif self.oc:
+            self.canvas.itemconfig(self.label, text="")
+            self.canvas.itemconfig(self.oc_text, text="◇")
+        else:
+            self.canvas.itemconfig(self.label, text="%s" % text)
+
+
 
     def __init__(self, x=0, y=0, label=None, **kwargs):
         super().__init__(x, y, **kwargs)
+        self._oc = False
         self.pins = []
         self.label = '%s_label' % self.id
         if label is None: label = self.id
@@ -516,6 +563,8 @@ class Part(Figure):
             self.increase()
         elif (event.keysym == "Down"):
             self.decrease()
+        elif (event.keysym in "oO"):
+            self.oc = not self.oc
 
     def move_wires(self):
         pins = [item for item in self.children if item.typename == 'Pin']
@@ -586,7 +635,8 @@ class Part(Figure):
 
 def run():
     for pin in Pin.get_all(): pin.operate_input()
-    for part in Part.allparts: part.operate()
+    for part in Part.allparts:
+        if part.children: part.operate()
     for pin in Pin.get_all(): pin.operate_output()
     Wire.operate()
     Part.default_canvas.update()

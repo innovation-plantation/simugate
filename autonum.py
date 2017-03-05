@@ -23,11 +23,11 @@ def get(word):
     :param word: such as 'foo'
     :return: word with suffix such as 'foo_1'
     '''
-    global words
-    if word not in words:
-        words.add(word)
-        return word
-    # chop = word.rsplit('_')
+    # global words
+    # if word not in words:
+    #     words.add(word)
+    #     return word
+
     root = rootword(word)  # word if len(chop)>1 and not chop[1].isdigit() else chop[0]
     for n in itertools.count(1):
         candidate = '%s_%d' % (root, n)

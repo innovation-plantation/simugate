@@ -18,7 +18,7 @@ def write_file(file):
         return " ".join([
                             "%s%s" % ('-' if any(inv for inv in pin.children if inv.inverted) else ''
                                       , pinnum(pin))
-                            for pin in part.children])
+                            for pin in part.children if "Pin_" in pin.id])
 
     config['PARTS'] = {part:
                            "%d %d : %s" %
@@ -41,7 +41,7 @@ def write_file(file):
 
 def load_from_config(config, dx=0, dy=0):
     ### now read it back in
-    re_partname_n = re.compile(r'^\s*(\w+)_(\d+)\s*$')
+    re_partname_n = re.compile(r'^\s*(\w+?)(_\d+)?\s*$')
     re_x_y_pins = re.compile(r'^\s*(-?\d+)\s*(-?\d+)\s*:\s*([-\d ]*)\s*$')
 
     pinmap = {}
@@ -50,6 +50,10 @@ def load_from_config(config, dx=0, dy=0):
         return
     if 'PARTS' in config:
         for partrecord in config['PARTS']:
+            found = re_partname_n.findall(partrecord)
+            if len(found) < 1:
+                print("Failed to process",partrecord, "with re ",re_partname_n.findall)
+                continue
             partname, serialnumber = re_partname_n.findall(partrecord)[0]
             s = config['PARTS'][partrecord]
             result = re_x_y_pins.findall(s)
@@ -57,15 +61,19 @@ def load_from_config(config, dx=0, dy=0):
             x, y = int(x), int(y)
             cmd = 'device.%s(%d,%d)' % (partname, x + dx, y + dy)
             exec('import device')
-            unit = eval(cmd)
-            pin_numbers = [int(pinnum) for pinnum in pins.split(' ') if len(pinnum.strip()) > 0]
-            for i in range(len(unit.children)):
-                unit.children[i].bubble.inverted = pin_numbers[i] < 0
-                pin_numbers[i] = abs(pin_numbers[i])
-                pinmap[pin_numbers[i]] = unit.children[i]
-            if 'ORIENT' in config and partrecord in config['ORIENT']:
-                orientdata = [int(num) for num in config['ORIENT'][partrecord].split(' ') if len(num.strip()) > 0]
-                unit.orientation = orientdata
+            try:
+                unit = eval(cmd)
+
+                pin_numbers = [int(pinnum) for pinnum in pins.split(' ') if len(pinnum.strip()) > 0]
+                for i in range(len(unit.children)):
+                    unit.children[i].bubble.inverted = pin_numbers[i] < 0
+                    pin_numbers[i] = abs(pin_numbers[i])
+                    pinmap[pin_numbers[i]] = unit.children[i]
+                if 'ORIENT' in config and partrecord in config['ORIENT']:
+                    orientdata = [int(num) for num in config['ORIENT'][partrecord].split(' ') if len(num.strip()) > 0]
+                    unit.orientation = orientdata
+            except:
+                print("Failed to create type", cmd)
     if 'WIRES' in config:
         for wirerecord in config['WIRES']:
             pins = config['WIRES'][wirerecord]
