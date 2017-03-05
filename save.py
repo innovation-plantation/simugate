@@ -7,6 +7,7 @@ import circuit
 import netlist
 
 
+
 def write_file(file):
     config = configparser.ConfigParser()
     config.optionxform = lambda option: option

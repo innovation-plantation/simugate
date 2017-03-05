@@ -643,6 +643,7 @@ def run():
     # for diode in device.Diode.get_all():
     #     diode.operate()
     Figure.default_canvas.after(200, run)
+    return Part.default_canvas
 
 
 if __name__ == '__main__':
