@@ -441,6 +441,7 @@ def clockwise(a, x=0, y=0): return [w for pair in zip(*(a[::2], a[1::2])) for w 
 
 def flip(a, x=0, y=0): return [w for pair in zip(*(a[::2], a[1::2])) for w in [pair[0], y + y - pair[1]]]
 
+def stretch(a, factor,  x=0, y=0 ): return [w for pair in zip(*(a[::2], a[1::2])) for w in [pair[0], y +  factor*(pair[1]-y)]]
 
 def mirror(a, x=0, y=0): return [w for pair in zip(*(a[::2], a[1::2])) for w in [x + x - pair[0], pair[1]]]
 
@@ -561,8 +562,12 @@ class Part(Figure):
             self.rotate_ccw()
         elif (event.keysym == "Up"):
             self.increase()
+            self.move_wires()
+            self.canvas.update()
         elif (event.keysym == "Down"):
             self.decrease()
+            self.move_wires()
+            self.canvas.update()
         elif (event.keysym in "oO"):
             self.oc = not self.oc
 
@@ -604,6 +609,15 @@ class Part(Figure):
             x, y = self.canvas.coords(self.pivot)
             for n in self.canvas.find_withtag(self.group):
                 self.canvas.coords(n, mirror(self.canvas.coords(n), x, y))
+            self.move_wires()
+            self.canvas.update()
+        return self
+
+    def stretch(self,factor):
+        if self.canvas:
+            x, y = self.canvas.coords(self.pivot)
+            for n in self.canvas.find_withtag(self.shape):
+                self.canvas.coords(n, stretch(self.canvas.coords(n), factor, x, y))
             self.move_wires()
             self.canvas.update()
         return self

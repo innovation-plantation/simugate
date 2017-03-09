@@ -48,8 +48,28 @@ class Gate(circuit.Part):
     def inversion_change(self):
         print("Inversion changed")
 
+    def increase(self):
+        n = len(self.i)
+        if n>1 and hasattr(self, 'scaled_shape'):
+            orient = self.orientation
+            self.orientation = 100,000,000,100
+            if n==2:
+                self.canvas.move(self.i[1].group, 0, -20)
+                self.i.append(self.add_pin(-65, 20, dx=25))
+            else:
+                for i in range(n):
+                    self.canvas.move(self.i[i].group,0,-10)
+                self.i.append(self.add_pin(-65, 10*n, dx=25))
+                self.canvas.coords(self.shape,*self.scaled_shape(n+1))
+            self.orientation = orient
 
-and_shape = -40, -40, -40, -40, 0, -40, 0, -40, 20, -40, 40, -20, 40, 0, 40, 20, 20, 40, 0, 40, 0, 40, -40, 40, -40, 40,
+
+def scaled_and_shape(n,x=0,y=0):
+    k = max(40, n * 10)
+    return x-40, y-k, x-40, y-k, x, y-k, x, y-k, x+20, y-k, x+40, y-k+20, x+40, y, x+40, y+k-20, x+20, y+k, x, y+k, x, y+k, x-40, y+k, x-40, y+k
+
+and_shape = scaled_and_shape(4)
+           # -40, -40, -40, -40, 0, -40, 0, -40, 20, -40, 40, -20, 40, 0, 40, 20, 20, 40, 0, 40, 0, 40, -40, 40, -40, 40,
 
 
 class And(Gate):
@@ -59,11 +79,18 @@ class And(Gate):
     def inversion_change(self):
         self.rename('NAND' if self.o.bubble.inverted else 'AND')
 
+    def scaled_shape(self,n):
+        return scaled_and_shape(n,*self.xy)
 
-or_shape = (-40, -20, -40, -30, -50, -40, -50, -40, -40, -40, -40, -40, 0, -40,
-            40, 0, 40, 0,
-            0, 40, -40, 40, -50, 40, -50, 40, -40, 30, -40, 20),
 
+def scaled_or_shape(n,x=0,y=0):
+        k = max(40,n*10)
+        return (x-40, y-k+20, x-40, y-k+10, x-50, y-k, x-50, y-k, x-40, y-k, x-20, y-k+1,
+         x+10,y-25,
+                x+40, y, x+40, y,
+         x+10,y+25,
+         x-20, y+k-1, x-40, y+k, x-40, y+k, x-50, y+k, x-50, y+k, x-40, y+k-10, x-40, y+k-20)
+or_shape = scaled_or_shape(4)
 
 class Or(Gate):
     def __init__(self, *args, **kwargs):
@@ -72,6 +99,8 @@ class Or(Gate):
     def inversion_change(self):
         self.rename('NOR' if self.o.bubble.inverted else 'OR')
 
+    def scaled_shape(self,n):
+        return scaled_or_shape(n,*self.xy)
 
 class Xor(Gate):
     def __init__(self, *args, **kwargs):

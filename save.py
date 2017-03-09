@@ -64,8 +64,11 @@ def load_from_config(config, dx=0, dy=0):
             exec('import device')
             try:
                 unit = eval(cmd)
-
                 pin_numbers = [int(pinnum) for pinnum in pins.split(' ') if len(pinnum.strip()) > 0]
+                pincount = 0
+                while len(unit.children) < len(pin_numbers):
+                    unit.increase()
+                    if len(unit.children) == pincount: break # no growth
                 for i in range(len(unit.children)):
                     unit.children[i].bubble.inverted = pin_numbers[i] < 0
                     pin_numbers[i] = abs(pin_numbers[i])
@@ -80,7 +83,10 @@ def load_from_config(config, dx=0, dy=0):
             pins = config['WIRES'][wirerecord]
             pin_numbers = [int(pinnum) for pinnum in pins.split(' ') if pinnum.strip().isdigit()]
             for i in range(0, len(pin_numbers), 2):
-                a, b = pinmap[pin_numbers[i]], pinmap[pin_numbers[i + 1]]
+                src = pin_numbers[i]
+                dst = pin_numbers[i + 1]
+                a= pinmap[src]
+                b= pinmap[dst]
                 a.route(b)
 
 def read_file(filename):
