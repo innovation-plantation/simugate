@@ -569,7 +569,15 @@ class Part(Figure):
             self.move_wires()
             self.canvas.update()
         elif (event.keysym in "oO"):
-            self.oc = not self.oc
+            self.oc = not self.o
+        elif event.keysym in "0Ll1HhXxWwZzUu":
+            self.key_level(event.keysym.upper())
+        elif event.keysym == "space":
+            self.key_level(None)
+
+
+    def key_level(self,key):
+        pass
 
     def move_wires(self):
         pins = [item for item in self.children if item.typename == 'Pin']

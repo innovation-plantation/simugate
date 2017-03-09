@@ -526,3 +526,32 @@ class OCBuf(Gate):
 
     def inversion_change(self):
         self.rename('NOT' if self.o.bubble.inverted else '')
+
+one_way_coords=(-40,-10, 40,-10, 50,0, 40,10, -40,10)
+class OutputPin(circuit.Part):
+    def __init__(self, *args, name='OUTPUT=',**kwargs):
+        self.name = name
+        super().__init__(*args, coords = one_way_coords, **kwargs)
+        self.pin = self.add_pin(-60,0, dx=20, invertible=False)
+
+    def operate(self):
+            self.rename('%s: %s'%(self.name,self.pin.in_value))
+            self.canvas.itemconfig(self.shape,outline=logic.color[self.pin.in_value])
+
+class InputPin(circuit.Part):
+    def __init__(self, *args, name='INPUT=',**kwargs):
+        self.name = name
+        super().__init__(*args, coords=one_way_coords, **kwargs)
+        self.pin = self.add_pin(70, 0, dx=-20, invertible=False)
+        self.value = 'Z'
+        self.rename(self.name)
+
+    def operate(self):
+        if '=' in self.name: self.rename('%s: %s' % (self.name, self.value))
+        self.pin.out_value = self.value
+        self.canvas.itemconfig(self.shape,outline=logic.color[self.value])
+
+    def key_level(self,key):
+        if not key: key= '1' if self.value == '0' else '0'
+        self.value = key
+
