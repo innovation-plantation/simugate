@@ -516,7 +516,7 @@ class Clock(Box):
 
 class OCLatch(Latch):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, height=0, width=1, **kwargs)
+        super().__init__(*args, **kwargs)
         self.oc=True
 
 class OCBuf(Gate):
@@ -535,7 +535,7 @@ class OutputPin(circuit.Part):
         self.pin = self.add_pin(-60,0, dx=20, invertible=False)
 
     def operate(self):
-            self.rename('%s: %s'%(self.name,self.pin.in_value))
+            self.rename('%s %s'%(self.name,self.pin.in_value))
             self.canvas.itemconfig(self.shape,outline=logic.color[self.pin.in_value])
 
 class InputPin(circuit.Part):
@@ -547,7 +547,7 @@ class InputPin(circuit.Part):
         self.rename(self.name)
 
     def operate(self):
-        if '=' in self.name: self.rename('%s: %s' % (self.name, self.value))
+        if '=' in self.name: self.rename('%s %s' % (self.name, self.value))
         self.pin.out_value = self.value
         self.canvas.itemconfig(self.shape,outline=logic.color[self.value])
 

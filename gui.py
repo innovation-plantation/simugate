@@ -54,6 +54,8 @@ def do_gui():
         ('Direct voltage source', device.Source),
         ('Logic ground', device.Ground),
         ('Diode', device.Diode),
+        ('Open Collector Buffer', device.OCBuf),
+        ('Open Collector Latch', device.OCLatch),
     ]:
         menu.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
 

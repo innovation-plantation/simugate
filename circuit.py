@@ -103,7 +103,9 @@ class Figure(Item):
             if canvas is None:
                 canvas = Figure.default_canvas  # if it's still unspecified, use previous
                 if canvas is None:
-                    canvas = tkinter.Canvas(tkinter.Tk())  # if none was ever specified, create a new toolkit
+                    master = tkinter.Tk()
+                    master.title("SimuGate")
+                    canvas = tkinter.Canvas(master)  # if none was ever specified, create a new toolkit
                     canvas.pack()
         self.canvas = canvas
         Figure.default_canvas = self.canvas
@@ -371,7 +373,7 @@ class Pin(Figure):
             if self.inverted:
                 self.out_value = '0' if self.out_value in '1H' else 'Z' if self.out_value in '0L' else self.out_value
             else:
-                self.out_value = 'Z' if self.out_value in '1H' else '1' if self.out_value in '0L' else self.out_value
+                self.out_value = 'Z' if self.out_value in '1H' else '0' if self.out_value in '0L' else self.out_value
         elif self.inverted:
             self.out_value = '0' if self.out_value in '1H' else '1' if self.out_value in '0L' else self.out_value
 
@@ -516,7 +518,7 @@ class Part(Figure):
 
 
     def __init__(self, x=0, y=0, label=None, **kwargs):
-        super().__init__(x, y, **kwargs)
+        super().__init__(x, y,  **kwargs)
         self._oc = False
         self.pins = []
         self.label = '%s_label' % self.id
