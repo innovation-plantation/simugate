@@ -478,7 +478,7 @@ class Part(Figure):
 
         name = self.canvas.itemconfig(self.label)['text'][4]
         if value:
-            self.oc_text = self.canvas.create_text(*self.xy, text="\n◇" if name else "◇", font=tkinter.font.Font(weight='bold', size=12, underline=1), tags=self.group)
+            self.oc_text = self.canvas.create_text(*self.xy, state='disabled',text="\n◇" if name else "◇", font=tkinter.font.Font(weight='bold', size=12, underline=1), tags=self.group)
             self.canvas.itemconfig(self.label, text=name.strip()+'\n')
         else:
             self.canvas.delete(self.oc_text)
