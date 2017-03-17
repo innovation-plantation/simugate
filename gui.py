@@ -38,6 +38,7 @@ def do_gui():
         ('Decoder', device.Decoder),
         ('Counter', device.Counter),
         ('Latch', device.Latch),
+        ('Memory', device.Mem),
         ('Edge-triggered D Flip-Flop', device.D_edge),
         ('Level-triggered D Flip-Flop', device.D_flipflop),
         ('Level-triggered SR Flip-Flop', device.SR_flipflop),
@@ -56,6 +57,7 @@ def do_gui():
         ('Diode', device.Diode),
         ('Open Collector Buffer', device.OCBuf),
         ('Open Collector Latch', device.OCLatch),
+        ('Open Collector Memory', device.OCMem),
     ]:
         menu.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
 

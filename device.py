@@ -355,6 +355,36 @@ class Latch(Box):
             self.o[bit].out_value = self.m[bit]
 
 
+class Mem(Box):
+    def __init__(self, *args, abits=8, dbits=8, **kwargs):
+        w, h = 2, max(abits,dbits)
+        super().__init__(*args, label='', height=h, width=1, vpad=0, **kwargs)
+        self.a = self.create_left_pins(['' for n in range(abits)])
+        self.d = self.create_right_pins(['' for n in range(dbits)])
+        self.m = [['X']*dbits for i in range(1<<abits)]
+        self.r,self.clk = self.create_bottom_pins(['R','^W'])
+        self.old_clk = 'X'
+
+    def operate(self):
+        if not hasattr(self,'clk'): return
+        clk = sample(self.clk)
+        r = sample(self.r)
+        try: addr = sample_pins(self.a)
+        except LookupError: addr=0
+        print(addr,self.m[addr])
+        if self.old_clk == '0' and clk == '1':
+            print("WRITE",addr,[logic.buffn(self.d[bit].in_value) for bit in range(len(self.d))] )
+            for bit in range(len(self.d)):
+                self.m[addr][bit] = logic.buffn(self.d[bit].in_value)
+        self.old_clk = clk
+        if (r=='1'):
+            for bit in range(len(self.d)):
+                self.d[bit].out_value = self.m[addr][bit]
+        else:
+            for bit in range(len(self.d)):
+                self.d[bit].out_value = 'Z'
+
+
 class SR_flipflop(Box):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, height=3, width=2, label='')
@@ -515,6 +545,11 @@ class Clock(Box):
 
 
 class OCLatch(Latch):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.oc=True
+
+class OCMem(Mem):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.oc=True
