@@ -58,6 +58,8 @@ def do_gui():
         ('Open Collector Buffer', device.OCBuf),
         ('Open Collector Latch', device.OCLatch),
         ('Open Collector Memory', device.OCMem),
+        ('Input Pin', device.InputPin),
+        ('Output Pin', device.OutputPin),
     ]:
         menu.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
 

@@ -94,6 +94,7 @@ class Figure(Item):
         self.group = '%s_group' % self.id
         self.pivot = '%s_pivot' % self.id
         self.shape = '%s_shape' % self.id
+        self.glow = '%s_glow' % self.id
         self.x100 = '%s_x100' % self.id
         self.y100 = '%s_y100' % self.id
         if canvas is None:
@@ -117,7 +118,9 @@ class Figure(Item):
         canvas.create_bitmap(0, 100, tags=(self.y100, self.group), bitmap='gray12',
                              state=tkinter.DISABLED if debug else tkinter.HIDDEN)
         scaled_coords = [coords[i] * scale[i & 1] for i in range(len(coords))]
-        canvas.create_polygon(scaled_coords, tags=(self.shape, self.group), fill=fill, outline=outline, width=width,
+        canvas.create_polygon(scaled_coords, tags=(self.glow, self.group), fill='yellow', outline='yellow', width=width+5,state=tkinter.HIDDEN,
+                              **kwargs)
+        self.sn = canvas.create_polygon(scaled_coords, tags=(self.shape, self.group), fill=fill, outline=outline, width=width,
                               **kwargs)
         for child in self.children:
             canvas.addtag_withtag(self.group, child.id)
@@ -250,12 +253,17 @@ class Inversion(Figure):
     def toggle_inversion(self):
         self.inverted = not self.inverted
 
+    def mous_pressed(self):
+        global canvas_lasso
+        canvas_lasso = False
+        self.toggle_inversion()
+
     def __init__(self, x, y, canvas=None, invertible=True, inverted=True, inversion_listener=None):
         super().__init__(x, y, canvas=canvas, smooth=True)
         self.inverted = inverted
         self.invertable = invertible
         if invertible:
-            self.canvas.tag_bind(self.shape, '<Button-1>', lambda event: self.toggle_inversion())
+            self.canvas.tag_bind(self.shape, '<Button-1>', lambda event: self.mouse_pressed())
             self.inversion_listener = inversion_listener
         else:
             self.canvas.itemconfig(self.shape, state=tkinter.DISABLED)
@@ -378,6 +386,8 @@ class Pin(Figure):
             self.out_value = '0' if self.out_value in '1H' else '1' if self.out_value in '0L' else self.out_value
 
     def mouse_down(self, event):
+        global canvas_lasso
+        canvas_lasso = False
         Pin.proto = ProtoWire(self, event.x, event.y)
 
     def mouse_move(self, event):
@@ -463,8 +473,54 @@ def mul2x2(m1,m2):
     '2x2 matrix multiplication'
     return a*e+b*g, a*f+b*h, c*e+d*g, c*f+d*h
 
+canvas_lasso = True
+canvas_lasso_anchor = None
+canvas_lasso_item = None
+
+def canvas_press(event,shift=False,ctrl=False):
+    global canvas_lasso,canvas_lasso_anchor,canvas_lasso_item
+    if not canvas_lasso:
+        canvas_lasso = True
+        canvas_lasso_anchor=()
+        return
+    if not shift:
+        Part.clear_selection()
+    canvas_lasso_anchor = event.x,event.y
+    canvas_lasso_item = event.widget.create_rectangle(*canvas_lasso_anchor,event.x,event.y,dash=(1,1),width=4,outline='cyan',state=tkinter.DISABLED)
+
+def canvas_release(event):
+    global canvas_lasso_item
+    if canvas_lasso_item is not None:
+        event.widget.delete(canvas_lasso_item)
+        canvas_lasso_item = None
+
+def canvas_move(event):
+    global canvas_lasso_anchor
+    if not canvas_lasso_anchor: return
+    event.widget.coords(canvas_lasso_item,*canvas_lasso_anchor,event.x,event.y)
+    selection = event.widget.find_enclosed(*canvas_lasso_anchor,event.x,event.y)
+    for item in selection:
+        if item in Part.sn_part:
+            Part.sn_part[item].selected = True
+
+
+
 class Part(Figure):
     allparts = []
+    sn_part = {}
+    selected_sn_part = {}
+
+    @property
+    def selected(self):
+        return self.sn in Part.selected_sn_part
+
+    @selected.setter
+    def selected(self,select):
+        self.canvas.itemconfig(self.glow, state=tkinter.NORMAL if select else tkinter.HIDDEN)
+        if select:
+            Part.selected_sn_part[self.sn] = self
+        else:
+            if self.sn in Part.selected_sn_part: Part.selected_sn_part.pop(self.sn)
 
     @property
     def oc(self):
@@ -505,6 +561,12 @@ class Part(Figure):
                 coords[i],coords[i+1] = x+x0,y+y0
             self.canvas.coords(item,coords)
 
+    @staticmethod
+    def clear_selection():
+        part_list = [part for sn,part in Part.sn_part.items()]
+        for part in part_list:
+            part.selected = False
+
     def rename(self, text):
         if self.oc and text:
             self.canvas.itemconfig(self.label, text="%s\n"%text )
@@ -525,11 +587,22 @@ class Part(Figure):
         if label is None: label = self.id
         self.canvas.create_text(x, y, tags=(self.label, self.group), text=label, state=tkinter.DISABLED)
         self.canvas.tag_bind(self.shape, '<Button-1>', lambda event: self.mouse_pressed(event))
+        self.canvas.tag_bind(self.shape, '<Shift-Button-1>', lambda event: self.mouse_pressed(event,shift=True))
+        self.canvas.tag_bind(self.shape, '<Control-Button-1>', lambda event: self.mouse_pressed(event,ctrl=True))
+        self.canvas.tag_bind(self.shape, '<Control-Shift-Button-1>', lambda event: self.mouse_pressed(event,shift=True,ctrl=True))
         self.canvas.tag_bind(self.shape, '<B1-Motion>', lambda event: self.mouse_moved(event))
         Part.allparts.append(self)
+        Part.sn_part[self.sn] = self
+        self.canvas.bind('<Control-Button-1>', lambda e:canvas_press(e,ctrl=True))
+        self.canvas.bind('<Shift-Button-1>', lambda e:canvas_press(e,shift=True))
+        self.canvas.bind('<Control-Shift-Button-1>', lambda e:canvas_press(e,ctrl=True,shift=True))
+        self.canvas.bind('<Button-1>', canvas_press)
+        self.canvas.bind('<ButtonRelease-1>', canvas_release)
+        self.canvas.bind('<B1-Motion>', canvas_move)
 
     def __del__(self):
         Part.allparts.remove(self)
+        Part.sn_part.pop(self.sn)
 
     def add_pin(self, *args, **kwargs):
         if 'label' in kwargs:
@@ -546,15 +619,22 @@ class Part(Figure):
         pin = Pin(*args, **kwargs, parent=self)
         return pin
 
-    def mouse_pressed(self, event):
-        self.old_xy = event.x, event.y
-        self.canvas.bind('<Key>', lambda event: self.typed(event))
-        self.canvas.tag_raise(self.group)
-        self.canvas.focus_set()
+    def mouse_pressed(self, event,ctrl=False,shift=False):
+        global canvas_lasso
+        canvas_lasso = False
+        if shift:
+            self.selected = not self.selected
+        elif not self.selected:
+            Part.clear_selection()
+            self.selected = True
+        for sn,item in Part.selected_sn_part.items():
+            item.old_xy = event.x, event.y
 
     def mouse_moved(self, event):
-        self.move(event.x - self.old_xy[0], event.y - self.old_xy[1])
-        self.old_xy = event.x, event.y
+        print(Part.selected_sn_part)
+        for sn,item in Part.selected_sn_part.items():
+            item.move(event.x - item.old_xy[0], event.y - item.old_xy[1])
+            item.old_xy = event.x, event.y
 
     def typed(self, event):
         log(event.keysym)
@@ -576,6 +656,7 @@ class Part(Figure):
             self.key_level(event.keysym.upper())
         elif event.keysym == "space":
             self.key_level(None)
+        else: print(self.keysym)
 
 
     def key_level(self,key):

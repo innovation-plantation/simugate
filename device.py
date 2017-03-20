@@ -371,9 +371,7 @@ class Mem(Box):
         r = sample(self.r)
         try: addr = sample_pins(self.a)
         except LookupError: addr=0
-        print(addr,self.m[addr])
         if self.old_clk == '0' and clk == '1':
-            print("WRITE",addr,[logic.buffn(self.d[bit].in_value) for bit in range(len(self.d))] )
             for bit in range(len(self.d)):
                 self.m[addr][bit] = logic.buffn(self.d[bit].in_value)
         self.old_clk = clk
@@ -497,17 +495,18 @@ class ALU(Adder):
 class Counter(Box):
     def __init__(self, *args, bits=4, **kwargs):
         w, h = 1, bits
-        super().__init__(*args, label='', height=h, width=1, **kwargs)
+        super().__init__(*args, label='', height=h, width=2, **kwargs)
         self.i = self.create_left_pins(['' for n in range(h)])
         self.o = self.create_right_pins(['' for n in range(h)])
         self.value = -1
-        self.clk, self.ld = self.create_bottom_pins(['^', 'LD'])
+        self.rst,self.clk, self.ld = self.create_bottom_pins(['RST','^', 'LD'])
         self.old_clk = 'X'
 
     def operate(self):
         if not hasattr(self,'clk'): return
         clk = sample(self.clk)
         ld = sample(self.ld)
+        rst = sample(self.rst)
         if clk in 'ZXWU':
             self.value = -1
         elif self.old_clk == '0' and clk == '1':
@@ -520,6 +519,8 @@ class Counter(Box):
                 if self.value >= 0: self.value += 1
             else:
                 self.value = -1
+        if rst in 'H1':
+            self.value = 0
         if self.value >= 0:
             set_pins(self.o, self.value)
         else:
