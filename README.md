@@ -24,3 +24,7 @@ For open collector output, set the .oc member True. Currently OCBuf, OCLatch, & 
 
 Functions of the ALU are subject to change at this point.
 
+TODO: insert and delete selected parts
+TODO: multi-bit I/O devices and ROM with data from file,
+TODO: pull-up bus and bus (simply a row of pullups / a column of pins)
+TODO: revise ALU to rotate through carry,add+c,sub+c to ease multiply program
