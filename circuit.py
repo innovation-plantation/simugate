@@ -561,13 +561,14 @@ class Part(Figure):
                 coords[i],coords[i+1] = x+x0,y+y0
             self.canvas.coords(item,coords)
 
+
     @staticmethod
     def clear_selection():
         part_list = [part for sn,part in Part.sn_part.items()]
         for part in part_list:
             part.selected = False
 
-    def rename(self, text):
+    def rename(self, text): # could be improved
         if self.oc and text:
             self.canvas.itemconfig(self.label, text="%s\n"%text )
             self.canvas.itemconfig(self.oc_text, text="\n◇")
@@ -741,7 +742,7 @@ class Part(Figure):
 def run():
     for pin in Pin.get_all(): pin.operate_input()
     for part in Part.allparts:
-        if part.children: part.operate()
+        if part.children: part.operate()  # could be improved - add enabled field and set it last
     for pin in Pin.get_all(): pin.operate_output()
     Wire.operate()
     Part.default_canvas.update()
