@@ -591,3 +591,23 @@ class InputPin(circuit.Part):
         if not key: key= 'H' if self.value == '0' else '0'
         self.value = key
 
+class Driver(Box):
+    def __init__(self, *args, bits=4, **kwargs):
+        w, h = 1, bits
+        super().__init__(*args, label='', height=h, width=1, vpad=0, **kwargs)
+        self.i = self.create_left_pins(['' for n in range(h)])
+        self.o = self.create_right_pins(['' for n in range(h)])
+        self.e = self.create_bottom_pin('EN')
+
+    def operate(self):
+        if not hasattr(self,'e'): return
+        e = sample(self.e)
+        if e=='1':
+            for n in range(len(self.o)): self.o[n].out_value = sample(self.i[n])
+        else:
+            for n in range(len(self.o)): self.o[n].out_value ='Z' if e == '0' else 'X'
+
+class OCDriver(Driver):
+     def __init__(self, *args, **kwargs):
+         super().__init__(*args,**kwargs)
+         self.oc = True

@@ -24,6 +24,6 @@ For open collector output, set the .oc member True. Currently OCBuf, OCLatch, & 
 
 Functions of the ALU are subject to change at this point.
 
-This is still pre-release. Before I consider it released, at least the following should be completed:
+This is still pre-release. Before I consider it released, you should at least be able drag and drop to copy selected items.
 
 
