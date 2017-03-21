@@ -8,9 +8,9 @@ Get the directory and run any of the following python programs:
 * exercises.ttl_exercise.py  -  create a gate using transistors
 Copy whatever exercises you want to make available up to the main folder.
 
-![image](https://cloud.githubusercontent.com/assets/26174810/23583336/f1d245ae-00e5-11e7-9b0f-730906aac996.png)
+![image](https://cloud.githubusercontent.com/assets/26174810/24163063/8e89e558-0e0d-11e7-8d14-37d183a29f26.png)
 
-You need Python to be installed. Python3 works. (with tkinter, which typically is normally bundled with Python) 
+You need Python to be installed. Python3 works. (with tkinter, which typically is normally bundled with Python)
 
 I threw this together recently - maybe it will be of use for some students leaning digital systems design or for teaching it.
 

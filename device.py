@@ -563,6 +563,19 @@ class OCBuf(Gate):
     def inversion_change(self):
         self.rename('NOT' if self.o.bubble.inverted else '')
 
+class OCNand(And):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.oc=True
+        self.o.bubble.inverted=True
+
+class OCNor(Or):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.oc=True
+        self.o.bubble.inverted=True
+
+
 one_way_coords=(-40,-10, 40,-10, 50,0, 40,10, -40,10)
 class OutputPin(circuit.Part):
     def __init__(self, *args, name='OUTPUT=',**kwargs):

@@ -56,6 +56,8 @@ def do_gui():
         ('Direct voltage source', device.Source),
         ('Logic ground', device.Ground),
         ('Diode', device.Diode),
+        ('Open Collector NAND gate', device.OCNand),
+        ('Open Collector NOR gate', device.OCNor),
         ('Open Collector Buffer', device.OCBuf),
         ('Open Collector Driver', device.OCDriver),
         ('Open Collector Latch', device.OCLatch),
