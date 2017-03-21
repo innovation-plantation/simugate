@@ -26,7 +26,4 @@ Functions of the ALU are subject to change at this point.
 
 This is still pre-release. Before I consider it released, at least the following should be completed:
 
-TODO: multi-bit I/O devices and ROM with data from file
-
-TODO: pull-up bus and bus (simply a row of pullups / a column of pins)
 

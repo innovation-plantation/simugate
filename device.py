@@ -588,6 +588,6 @@ class InputPin(circuit.Part):
         self.canvas.itemconfig(self.shape,outline=logic.color[self.value])
 
     def key_level(self,key):
-        if not key: key= '1' if self.value == '0' else '0'
+        if not key: key= 'H' if self.value == '0' else '0'
         self.value = key
 
