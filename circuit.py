@@ -35,12 +35,11 @@ class Item:
         self.typename = autonum.rootword(typename)
         if self.typename not in Item.instances: Item.instances[self.typename] = []
         Item.instances[self.typename].append(self)
-        log('created', self.id)
 
     def remove(self):
-        Item.instances[self.typename].remove(self)
+        if self in Item.instances[self.typename]:
+            Item.instances[self.typename].remove(self)
         autonum.delete(self.id)
-        log('deleted', self.id)
 
     def __repr__(self):
         return self.id
@@ -231,6 +230,7 @@ class Wire(Item):
         self.canvas.itemconfig(self.id, fill=logic.color[value], width=logic.width[value])
 
     def __repr__(self):
+        if not debug: return self.id
         return self.id + ': ' + repr(self.pins) + '/' + repr(sorted(netlist.group_of(self.pins[0])))
 
     def __del__(self):
@@ -253,7 +253,7 @@ class Inversion(Figure):
     def toggle_inversion(self):
         self.inverted = not self.inverted
 
-    def mous_pressed(self):
+    def mouse_pressed(self):
         global canvas_lasso
         canvas_lasso = False
         self.toggle_inversion()
@@ -439,10 +439,10 @@ class Pin(Figure):
         for connection in netlist.direct_connections_to(self):
             Wire.remove(Wire.segments[connection])
         Item.remove(self)
-
+        if self.bubble:
+            self.bubble.remove()
+        self.canvas.delete(self.group)
         return self.id
-
-    # NEIL Amazon, RYDER Microsoft, TEDDY Google
 
     def __lt__(self, other):
         return self.id < other.id
@@ -478,7 +478,6 @@ canvas_lasso_anchor = None
 canvas_lasso_item = None
 
 def canvas_typed(event):
-    print("TYPED",event)
     for sn,part in Part.selected_sn_part.items():
         part.typed(event)
 
@@ -572,6 +571,12 @@ class Part(Figure):
         part_list = [part for sn,part in Part.sn_part.items()]
         for part in part_list:
             part.selected = False
+    @staticmethod
+    def delete_all_selected():
+        part_list = [(sn,part) for sn,part in Part.sn_part.items()]
+        for sn,part in part_list:
+            if part.selected:
+                part.remove()
 
     def rename(self, text): # could be improved
         if self.oc and text:
@@ -610,6 +615,7 @@ class Part(Figure):
 
     def __del__(self):
         Part.allparts.remove(self)
+        Item.instances.remove(self)
         Part.sn_part.pop(self.sn)
 
     def add_pin(self, *args, **kwargs):
@@ -663,6 +669,8 @@ class Part(Figure):
             self.key_level(event.keysym.upper())
         elif event.keysym == "space":
             self.key_level(None)
+        elif event.keysym == 'Delete':
+            Part.delete_all_selected()
         else: print(event.keysym)
 
 
@@ -744,6 +752,16 @@ class Part(Figure):
         '''override in subclass such as GATE where update such as name of part may be needed'''
         pass
 
+    def remove(self):
+        if self in Part.allparts:
+            Part.allparts.remove(self)
+        for child in self.children:
+            child.remove()
+        self.children.clear()
+        Item.remove(self)
+        self.canvas.delete(self.group)
+        return self.id
+
 
 def run():
     for pin in Pin.get_all(): pin.operate_input()
@@ -789,7 +807,6 @@ if __name__ == '__main__':
     top = Pin(100, 100 - 80, dy=30, edge_triggered=True);
     top.parent = p100
 
-    print(Pin.get_all())
     p100.canvas.update()
 
     print(p100.group)

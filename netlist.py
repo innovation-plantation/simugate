@@ -34,7 +34,7 @@ def group_of(a, b=None):
 
 def direct_connections_to(a):
     g = group_of(a)
-    return [x for x in g if a in x]
+    return [] if g is None else [x for x in g if a in x]
 
 
 def disconnect(a, b=None):

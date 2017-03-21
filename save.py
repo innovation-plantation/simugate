@@ -21,6 +21,9 @@ def write_file(file):
                                       , pinnum(pin))
                             for pin in part.children if "Pin_" in pin.id])
 
+
+    print("circuit.Part.allparts",circuit.Part.allparts)
+
     config['PARTS'] = {part:
                            "%d %d : %s" %
                            (round(int(part.xy[0]), 1),
