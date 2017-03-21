@@ -477,6 +477,11 @@ canvas_lasso = True
 canvas_lasso_anchor = None
 canvas_lasso_item = None
 
+def canvas_typed(event):
+    print("TYPED",event)
+    for sn,part in Part.selected_sn_part.items():
+        part.typed(event)
+
 def canvas_press(event,shift=False,ctrl=False):
     global canvas_lasso,canvas_lasso_anchor,canvas_lasso_item
     if not canvas_lasso:
@@ -579,7 +584,6 @@ class Part(Figure):
             self.canvas.itemconfig(self.label, text="%s" % text)
 
 
-
     def __init__(self, x=0, y=0, label=None, **kwargs):
         super().__init__(x, y,  **kwargs)
         self._oc = False
@@ -600,6 +604,9 @@ class Part(Figure):
         self.canvas.bind('<Button-1>', canvas_press)
         self.canvas.bind('<ButtonRelease-1>', canvas_release)
         self.canvas.bind('<B1-Motion>', canvas_move)
+        self.canvas.bind('<Key>', canvas_typed)
+        self.canvas.focus_set()
+
 
     def __del__(self):
         Part.allparts.remove(self)
@@ -632,7 +639,6 @@ class Part(Figure):
             item.old_xy = event.x, event.y
 
     def mouse_moved(self, event):
-        print(Part.selected_sn_part)
         for sn,item in Part.selected_sn_part.items():
             item.move(event.x - item.old_xy[0], event.y - item.old_xy[1])
             item.old_xy = event.x, event.y
@@ -657,7 +663,7 @@ class Part(Figure):
             self.key_level(event.keysym.upper())
         elif event.keysym == "space":
             self.key_level(None)
-        else: print(self.keysym)
+        else: print(event.keysym)
 
 
     def key_level(self,key):
@@ -742,7 +748,7 @@ class Part(Figure):
 def run():
     for pin in Pin.get_all(): pin.operate_input()
     for part in Part.allparts:
-        if part.children: part.operate()  # could be improved - add enabled field and set it last
+        if part.children: part.operate()  # could be improved - enabled
     for pin in Pin.get_all(): pin.operate_output()
     Wire.operate()
     Part.default_canvas.update()
