@@ -403,6 +403,35 @@ class Mem(Box):
             for bit in range(len(self.d)):
                 self.d[bit].out_value = 'Z'
 
+class ROM(Box):
+    def __init__(self, *args, abits=8, dbits=8, **kwargs):
+        w, h = 2, max(abits,dbits)
+        super().__init__(*args, label='', height=h, width=1, vpad=0, **kwargs)
+        self.a = self.create_left_pins(['' for n in range(abits)])
+        self.d = self.create_right_pins(['' for n in range(dbits)])
+        self.m = [['0' if i&2 else '1']*dbits for i in range(1<<abits)]
+
+        foo = "Hello, world!"
+        for i in range(len(foo)):
+            self.m[i] = ['H' if 1 << bit & ord(foo[i]) else '0' for bit in range(8)]
+
+        self.r = self.create_bottom_pin('R')
+
+
+    def operate(self):
+        if not hasattr(self,'r'): return
+        r = sample(self.r)
+        try: addr = sample_pins(self.a)
+        except LookupError: addr=0
+        if (r=='1'):
+            for bit in range(len(self.d)):
+                self.d[bit].out_value = self.m[addr][bit]
+                print(addr,self.m[addr][bit])
+        else:
+            for bit in range(len(self.d)):
+                self.d[bit].out_value = 'Z'
+
+
 
 class SR_flipflop(Box):
     def __init__(self, *args, **kwargs):
@@ -572,6 +601,11 @@ class OCLatch(Latch):
         self.oc=True
 
 class OCMem(Mem):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.oc=True
+
+class OCROM(ROM):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.oc=True

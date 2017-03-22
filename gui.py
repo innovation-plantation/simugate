@@ -14,7 +14,7 @@ def somewhere():
 
 def do_gui():
     tk = tkinter.Tk()
-    can = circuit.Figure.default_canvas = tkinter.Canvas(tk, height='500', width='1000',scrollregion=(0,0,5000,5000))
+    can = circuit.Figure.default_canvas = tkinter.Canvas(tk, height='750', width='1000',scrollregion=(0,0,5000,5000))
     h = tkinter.Scrollbar(tk, command=can.xview, orient=tkinter.HORIZONTAL);
     h.pack(side=tkinter.BOTTOM, fill=tkinter.X)
     v = tkinter.Scrollbar(tk, command=can.yview);
@@ -43,6 +43,7 @@ def do_gui():
         ('Counter', device.Counter),
         ('Latch', device.Latch),
         ('Memory', device.Mem),
+        ('ROM', device.ROM),
         ('Edge-triggered D Flip-Flop', device.D_edge),
         ('Level-triggered D Flip-Flop', device.D_flipflop),
         ('Level-triggered SR Flip-Flop', device.SR_flipflop),
@@ -66,6 +67,7 @@ def do_gui():
         ('Open Collector Driver', device.OCDriver),
         ('Open Collector Latch', device.OCLatch),
         ('Open Collector Memory', device.OCMem),
+        ('Open Collector ROM', device.OCROM),
         ('Input Pin', device.InputPin),
         ('Output Pin', device.OutputPin),
         ('Bus', device.Bus),

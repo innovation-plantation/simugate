@@ -206,15 +206,13 @@ class Wire(Item):
     def get_coords(self):
         points = (*self.pins[0].xy, *self.pins[0].gravity, *self.pins[1].gravity, *self.pins[1].xy)
         x0, y0, x1, y1, x2, y2, x3, y3 = points
-        if self.pins[0].parent is self.pins[1].parent is not None:
-            if x1 < x0 < x3 < x2 or x1 > x0 > x3 > x2:
-                xx = (x0 + x3) / 2
-                yy = (y0 + y3) / 2
-                points = x0, y0, x1, y1, xx, yy - 100, x2, y2, x3, y3
-            if y1 < y0 < y3 < y2 or y1 > y0 > y3 > y2:
-                xx = (x0 + x3) / 2
-                yy = (y0 + y3) / 2
-                points = x0, y0, x1, y1, xx - 100, yy, x2, y2, x3, y3
+        # modify gravity effects in proportion to distance
+        d = ((x3-x0)*(x3-x0)+(y3-y0)*(y3-y0))**.5
+        y1 += d/100*(y1-y0)
+        y2 += d/100*(y2-y3)
+        x1 += d/100*(x1-x0)
+        x2 += d/100*(x2-x3)
+        points = x0, y0, x1, y1, x2, y2, x3, y3
         return points
 
     def move(self):
@@ -327,7 +325,7 @@ class Pin(Figure):
         self.canvas.itemconfig(self.shape, outline=logic.color[value], fill=logic.color[value],
                                width=logic.width[value])
 
-    def __init__(self, x=0, y=0, dx=0, dy=0, scale=(.4, .4), smooth=True, fill='black',
+    def __init__(self, x=0, y=0, dx=0, dy=0, scale=(.4, .4), smooth=False, fill='black',
                  edge_triggered=False, canvas=None, label='', inverted=False, invertible=True, input='Z', output='Z',
                  inversion_listener=None, parent=None, **kwargs):
         self.invertible = invertible
@@ -353,7 +351,7 @@ class Pin(Figure):
         self.bubble.parent = self;
 
         text_pt = x + Pin.adjust(dx, 15), y + Pin.adjust(dy, 15)
-        self.canvas.create_text(*text_pt, text=label, tags=(self.group, self.id + '_pintext', self.id))
+        self.canvas.create_text(*text_pt, text=label, tags=(self.group, self.id + '_pintext', self.id),state=tkinter.DISABLED)
         self.canvas.addtag_withtag(self.id, self.shape)
 
         edge_pt = x + Pin.adjust(dx, 10), y + Pin.adjust(dy, 10)
@@ -388,10 +386,10 @@ class Pin(Figure):
     def mouse_down(self, event):
         global canvas_lasso
         canvas_lasso = False
-        Pin.proto = ProtoWire(self, event.x, event.y)
+        Pin.proto = ProtoWire(self, self.canvas.canvasx(event.x), self.canvas.canvasy(event.y))
 
     def mouse_move(self, event):
-        Pin.proto.move(event.x, event.y)
+        Pin.proto.move(self.canvas.canvasx(event.x), self.canvas.canvasy(event.y))
 
     def near_regex(self, x, y, regex, dx=50, dy=50):
         finder = re.compile(regex)
@@ -404,10 +402,11 @@ class Pin(Figure):
         return [pin for tag in tags for pin in [Item.get(tag, 'Pin')] if pin]
 
     def mouse_up(self, event):
-        pins = self.near_pins(event.x, event.y)
+        x, y = event.widget.canvasx(event.x), event.widget.canvasy(event.y)
+        pins = self.near_pins(x, y)
         closest = None
         for pin in pins:
-            dist = math.hypot(event.x - pin.xy[0], event.y - pin.xy[1])
+            dist = math.hypot(x - pin.xy[0], y - pin.xy[1])
             if closest is None or dist < mindist:
                 closest = pin
                 mindist = dist
@@ -482,6 +481,7 @@ def canvas_typed(event):
         part.typed(event)
 
 def canvas_press(event,shift=False,ctrl=False):
+    x,y = event.widget.canvasx(event.x),event.widget.canvasy(event.y)
     global canvas_lasso,canvas_lasso_anchor,canvas_lasso_item
     if not canvas_lasso:
         canvas_lasso = True
@@ -489,8 +489,8 @@ def canvas_press(event,shift=False,ctrl=False):
         return
     if not shift:
         Part.clear_selection()
-    canvas_lasso_anchor = event.x,event.y
-    canvas_lasso_item = event.widget.create_rectangle(*canvas_lasso_anchor,event.x,event.y,dash=(1,1),width=4,outline='cyan',state=tkinter.DISABLED)
+    canvas_lasso_anchor =x,y
+    canvas_lasso_item = event.widget.create_rectangle(*canvas_lasso_anchor,x,y,dash=(1,1),width=4,outline='cyan',state=tkinter.DISABLED)
 
 def canvas_release(event):
     global canvas_lasso_item
@@ -499,15 +499,14 @@ def canvas_release(event):
         canvas_lasso_item = None
 
 def canvas_move(event):
+    x,y = event.widget.canvasx(event.x),event.widget.canvasy(event.y)
     global canvas_lasso_anchor
     if not canvas_lasso_anchor: return
-    event.widget.coords(canvas_lasso_item,*canvas_lasso_anchor,event.x,event.y)
-    selection = event.widget.find_enclosed(*canvas_lasso_anchor,event.x,event.y)
+    event.widget.coords(canvas_lasso_item,*canvas_lasso_anchor,x,y)
+    selection = event.widget.find_enclosed(*canvas_lasso_anchor,x,y)
     for item in selection:
         if item in Part.sn_part:
             Part.sn_part[item].selected = True
-
-
 
 class Part(Figure):
     allparts = []
@@ -634,6 +633,7 @@ class Part(Figure):
         return pin
 
     def mouse_pressed(self, event,ctrl=False,shift=False):
+        x,y = event.widget.canvasx(event.x),event.widget.canvasy(event.y)
         global canvas_lasso
         canvas_lasso = False
         if shift:
@@ -642,12 +642,13 @@ class Part(Figure):
             Part.clear_selection()
             self.selected = True
         for sn,item in Part.selected_sn_part.items():
-            item.old_xy = event.x, event.y
+            item.old_xy = x, y
 
     def mouse_moved(self, event):
+        x,y = event.widget.canvasx(event.x),event.widget.canvasy(event.y)
         for sn,item in Part.selected_sn_part.items():
-            item.move(event.x - item.old_xy[0], event.y - item.old_xy[1])
-            item.old_xy = event.x, event.y
+            item.move(x - item.old_xy[0], y - item.old_xy[1])
+            item.old_xy = x, y
 
     def typed(self, event):
         log(event.keysym)
