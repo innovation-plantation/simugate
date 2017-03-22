@@ -14,7 +14,11 @@ def somewhere():
 
 def do_gui():
     tk = tkinter.Tk()
-    can = circuit.Figure.default_canvas = tkinter.Canvas(tk, height='8.5i', width='11i')
+    can = circuit.Figure.default_canvas = tkinter.Canvas(tk, height='500', width='1000',scrollregion=(0,0,5000,5000))
+    h = tkinter.Scrollbar(tk, command=can.xview, orient=tkinter.HORIZONTAL);
+    h.pack(side=tkinter.BOTTOM, fill=tkinter.X)
+    v = tkinter.Scrollbar(tk, command=can.yview);
+    v.pack(side=tkinter.RIGHT, fill=tkinter.Y)
     can.pack()
 
     menu = tkinter.Menu(tk)

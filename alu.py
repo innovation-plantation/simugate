@@ -12,14 +12,14 @@ alu_config = {
     5: (lambda a, b, n=4: split_carry(-a, n), 'NEG', 1),
     6: (lambda a, b, n=4: split_carry(0, n), 'CLR', 0),
     7: (lambda a, b, n=4: split_carry(-1), 'SET', 0),
-    0x8: (lambda a, b, c, n=4: split_carry(a + 1), 'INC', 1),
-    0x9: (lambda a, b, c, n=4: split_carry(a - 1), 'DEC', 1),
-    0xA: (lambda a, b, n=4: split_carry(a + b), 'ADD', 2),
-    0xB: (lambda a, b, c, n=4: split_carry(a - b), 'SUB', 2),
-    0xC: (lambda a, b, n=4: split_carry(a + 1 + b), 'ADC', 2),
-    0xD: (lambda a, b, n=4: split_carry(a - 1 - b), 'SBB', 2),
-    0xE: (lambda a, b, n=4: split_carry(a << 1 | a >> n & 1), 'ROL', 2),
-    0xF: (lambda a, b, n=4: split_carry(a >> 1 | (a & 1) << n), 'ROR', 2)
+    0x8: (lambda a, b, n=4: split_carry(a + b), 'ADD', 2),
+    0x9: (lambda a, b, n=4: split_carry(a + 1 + b), 'ADC', 2),
+    0xA: (lambda a, b, c, n=4: split_carry(a - b), 'SUB', 2),
+    0xB: (lambda a, b, n=4: split_carry(a - 1 - b), 'SBB', 2),
+    0xC: (lambda a, b, n=4: split_carry(a << 1 | a >> n & 1), 'ROL', 2),
+    0xD: (lambda a, b, c, n=4: split_carry(a + 1), 'INC', 1),
+    0xE: (lambda a, b, n=4: split_carry(a >> 1 | (a & 1) << n), 'ROR', 2),
+    0xF: (lambda a, b, c, n=4: split_carry(a - 1), 'DEC', 1),
 }
 
 
