@@ -68,6 +68,8 @@ def do_gui():
         ('Open Collector Memory', device.OCMem),
         ('Input Pin', device.InputPin),
         ('Output Pin', device.OutputPin),
+        ('Bus', device.Bus),
+        ('Pullup Resistor Pack', device.PullupPack),
     ]:
         menu.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
 

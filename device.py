@@ -166,6 +166,27 @@ class Pullup(circuit.Part):
     def operate(self):
         self.o.out_value = 'H'
 
+class PullupPack(circuit.Part):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, label='', coords=(-10, -60, 10, -70), width=7, outline=logic.color['H'], **kwargs)
+        x0, y0 = self.xy
+        y=y0+15
+        for x in x0-30, x0-10, x0+10, x0+30:
+            self.canvas.create_line(x + 0, y - 20, x - 5, y - 25, x + 5, y - 30, x - 5, y - 35, x + 5, y - 40, x - 5,
+                                y - 45, x + 5, y - 50, x + 0, y - 55, x + 0, y - 65, width=3, fill=logic.color['H'],
+                                tags=(self.group, self.shape))
+        self.o = [self.add_pin(x, 0, invertible=False) for x in (-30,-10,10,30)]
+        self.canvas.create_line(x0-30,y-65,x0+30,y-65, width=3, fill=logic.color['H'],
+                                tags=(self.group, self.shape))
+
+        self.canvas.create_line(x0, y - 65, x0, y - 80, width=3, fill=logic.color['H'],
+                            tags=(self.group, self.shape))
+
+    def operate(self):
+        for pin in self.o: pin.out_value = 'H'
+
+
+
 
 class Pulldown(circuit.Part):
     def __init__(self, *args, **kwargs):
@@ -624,3 +645,10 @@ class OCDriver(Driver):
      def __init__(self, *args, **kwargs):
          super().__init__(*args,**kwargs)
          self.oc = True
+
+class Bus(circuit.Part):
+    def __init__(self, *args,label='', coords=(-2,-40, -2,40, 2,40, 2,-40), **kwargs):
+        super().__init__(*args, label=label,coords=coords, **kwargs)
+        for y in 30,10,-10,-30: self.add_pin(0,y,invertible=False)
+
+
