@@ -39,6 +39,8 @@ def write_file(file):
                            "%d %d %d %d"%part.orientation
                        for part in circuit.Part.allparts if part.orientation != (100,0,0,100) }
 
+    config['PROG'] = {part: part.prog_data
+                       for part in circuit.Part.allparts if 'prog_data' in dir(part)}
     config.write(file)
     return config
 
@@ -79,6 +81,8 @@ def load_from_config(config, dx=0, dy=0):
                 if 'ORIENT' in config and partrecord in config['ORIENT']:
                     orientdata = [int(num) for num in config['ORIENT'][partrecord].split(' ') if len(num.strip()) > 0]
                     unit.orientation = orientdata
+                if 'PROG' in config and partrecord in config['PROG']:
+                    unit.prog_data = config['PROG'][partrecord]
             except:
                 print("Failed to create type", cmd)
     if 'WIRES' in config:

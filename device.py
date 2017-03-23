@@ -404,19 +404,37 @@ class Mem(Box):
                 self.d[bit].out_value = 'Z'
 
 class ROM(Box):
-    def __init__(self, *args, abits=8, dbits=8, **kwargs):
+    '''
+    Uses prog_data if it exists, then overwrites with data if it exists.
+    If prog_data does not exist, a simple pattern is used with all zeroes in some addresses and all ones in others.
+    '''
+    @property
+    def prog_data(self):
+        return ''.join(['%02x'%int(''.join(reversed(d)),2) for d in self.m])
+    @prog_data.setter
+    def prog_data(self, dump):
+        self.m = [ [x for x in reversed('{0:08b}'.format(x))] for x in bytearray.fromhex(dump)]
+
+    def __init__(self, *args, abits=8, dbits=8, prog_data=None,data={0:"Hello, world!"}, **kwargs):
         w, h = 2, max(abits,dbits)
         super().__init__(*args, label='', height=h, width=1, vpad=0, **kwargs)
         self.a = self.create_left_pins(['' for n in range(abits)])
         self.d = self.create_right_pins(['' for n in range(dbits)])
-        self.m = [['0' if i&2 else '1']*dbits for i in range(1<<abits)]
 
-        foo = "Hello, world!"
-        for i in range(len(foo)):
-            self.m[i] = ['H' if 1 << bit & ord(foo[i]) else '0' for bit in range(8)]
+        if prog_data: self.prog_data = prog_data
+        else: self.m = [['0' if i&2 else '1']*dbits for i in range(1<<abits)]
 
+        for addr,data in data.items():
+            if type(data) is str:
+                text = data
+                for i in range(len(text)):
+                    self.m[addr+i] = ['1' if 1 << bit & ord(text[i]) else '0' for bit in range(8)]
+            elif type(data) is int:
+                self.m[addr] = ['1' if 1 << bit & data else '0' for bit in range(8)]
+            elif type(data) in (list,tuple):
+                for i in range(len(data)):
+                    self.m[addr+i] = ['1' if 1 << bit & data[i] else '0' for bit in range(8)]
         self.r = self.create_bottom_pin('R')
-
 
     def operate(self):
         if not hasattr(self,'r'): return
@@ -426,7 +444,6 @@ class ROM(Box):
         if (r=='1'):
             for bit in range(len(self.d)):
                 self.d[bit].out_value = self.m[addr][bit]
-                print(addr,self.m[addr][bit])
         else:
             for bit in range(len(self.d)):
                 self.d[bit].out_value = 'Z'
@@ -535,7 +552,6 @@ class ALU(Adder):
                 self.c.out_value = self.old_c
             else:
                 self.old_c = self.c.out_value = '1' if c else '0'
-            print(txt, r)
         except (AttributeError,LookupError):
             self.c.out_value = 'X'
             for n in range(4):
@@ -686,3 +702,29 @@ class Bus(circuit.Part):
         for y in 30,10,-10,-30: self.add_pin(0,y,invertible=False)
 
 
+
+class CharDisplay(Box):
+    def __init__(self, *args, bits=7, **kwargs):
+        w, h = 3, 7
+        super().__init__(*args, label='', height=h-.5, width=w, vpad=0, **kwargs)
+        self.i = self.create_left_pins(['' for n in range(h)])
+        self.o = self.create_right_pins(['' for n in range(h)])
+        self.m = ['X'] * h
+        self.clk = self.create_bottom_pin('^')
+        self.old_clk = 'X'
+
+    def operate(self):
+        if not hasattr(self,'clk'): return
+        clk = sample(self.clk)
+        if self.old_clk == '0' and clk == '1':
+            for bit in range(len(self.m)):
+                self.m[bit] = logic.buffn(self.i[bit].in_value)
+                ch=0
+                for n in range(len(self.m)):
+                    if self.m[n] in "1H":
+                        ch |= 1<<n
+            self.canvas.itemconfig(self.label, font=('tkfixed',72))
+            self.rename(chr(ch))
+        self.old_clk = clk
+        for bit in range(len(self.m)):
+            self.o[bit].out_value = self.m[bit]

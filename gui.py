@@ -70,6 +70,7 @@ def do_gui():
         ('Open Collector ROM', device.OCROM),
         ('Input Pin', device.InputPin),
         ('Output Pin', device.OutputPin),
+        ('Character Display',device.CharDisplay),
         ('Bus', device.Bus),
         ('Pullup Resistor Pack', device.PullupPack),
     ]:
