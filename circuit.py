@@ -588,7 +588,7 @@ class Part(Figure):
             self.canvas.itemconfig(self.label, text="%s" % text)
 
 
-    def __init__(self, x=0, y=0, label=None, **kwargs):
+    def __init__(self, x=100, y=100, label=None, **kwargs):
         super().__init__(x, y,  **kwargs)
         self._oc = False
         self.pins = []
