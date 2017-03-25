@@ -48,9 +48,31 @@ class Gate(circuit.Part):
     def inversion_change(self):
         print("Inversion changed")
 
+    def decrease(self):
+        n = len(self.i)
+        if n>2 and hasattr(self, 'scaled_shape') and not self.i[n-1].has_wires_connected() and max(max(self.orientation),-min(self.orientation))==100:
+            # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
+            n-=1
+            self.i[n].remove()
+            self.i.pop(n)
+            orient = self.orientation
+            self.orientation = 100, 000, 000, 100
+            if n == 2:
+                self.canvas.move(self.i[1].group, 0, 20)
+            else:
+                for i in range(n):
+                    self.canvas.move(self.i[i].group, 0, 10)
+                self.canvas.coords(self.shape, *self.scaled_shape(n))
+                self.canvas.coords(self.glow, *self.scaled_shape(n))
+                if hasattr(self, 'extra_scaling'): self.extra_scaling(n)
+            self.orientation = orient
+            self.move_wires()
+
+
     def increase(self):
         n = len(self.i)
-        if n>1 and hasattr(self, 'scaled_shape'):
+        if n>1 and hasattr(self, 'scaled_shape') and max(max(self.orientation),-min(self.orientation))==100:
+            # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
             orient = self.orientation
             self.orientation = 100,000,000,100
             if n==2:
@@ -61,8 +83,10 @@ class Gate(circuit.Part):
                     self.canvas.move(self.i[i].group,0,-10)
                 self.i.append(self.add_pin(-65, 10*n, dx=25))
                 self.canvas.coords(self.shape,*self.scaled_shape(n+1))
+                self.canvas.coords(self.glow, *self.scaled_shape(n + 1))
+                if hasattr(self,'extra_scaling'): self.extra_scaling(n+1)
             self.orientation = orient
-
+            self.move_wires()
 
 def scaled_and_shape(n,x=0,y=0):
     k = max(40, n * 10)
@@ -106,8 +130,21 @@ class Xor(Gate):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, label='XOR', coords=or_shape, fn=logic.xorfn, init='0', smooth=True, **kwargs)
         x, y = self.xy
-        self.canvas.create_line(x - 60, y - 40, x - 60, y - 38, x - 50, y - 30, x - 50, y + 30, x - 60, y + 38, x - 60,
-                                y + 40, smooth=True, fill='black', width=5, state='disabled', tags=self.group)
+        self.xor_tail = self.id+"_tail"
+        self.canvas.create_line(*self.scaled_tail(2), smooth=True, fill='black', width=5, state='disabled', tags=(self.group,self.xor_tail))
+
+    def scaled_tail(self, n):
+        x, y = self.xy
+        k = max(40,n*10)
+        return x - 60, y - k, x - 60, y - k+2, x - 50, y - k+10, x - 50, y + k-10, x - 60, y + k-2, x - 60, y + k
+
+    def scaled_shape(self,n):
+        return scaled_or_shape(n,*self.xy)
+
+    #this could be improved...
+    def extra_scaling(self,n):
+        x, y = self.xy
+        self.canvas.coords(self.xor_tail, *self.scaled_tail(n))
 
     def inversion_change(self):
         self.rename('XNOR' if self.o.bubble.inverted else 'XOR')

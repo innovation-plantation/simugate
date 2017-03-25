@@ -429,6 +429,9 @@ class Pin(Figure):
         link.remove()
         return link_id
 
+    def has_wires_connected(self):
+        return len(netlist.direct_connections_to(self)) > 0
+
     def remove(self):
         '''
         Remove all wires associated with this pin before removing it from the pin items pool.
@@ -652,19 +655,23 @@ class Part(Figure):
 
     def typed(self, event):
         log(event.keysym)
-        if (event.keysym == "Right"):
+        if event.keysym == "Right":
             self.rotate_cw()
-        elif (event.keysym == "Left"):
+        elif event.keysym == "Left":
             self.rotate_ccw()
-        elif (event.keysym == "Up"):
+        elif event.keysym == "Up":
+            self.mirror()
+            self.move_wires()
+            self.canvas.update()
+        elif event.keysym == "Down":
+            self.flip()
+            self.move_wires()
+            self.canvas.update()
+        elif event.keysym == 'plus':
             self.increase()
-            self.move_wires()
-            self.canvas.update()
-        elif (event.keysym == "Down"):
+        elif event.keysym == 'minus':
             self.decrease()
-            self.move_wires()
-            self.canvas.update()
-        elif (event.keysym in "oO"):
+        elif event.keysym in "oO":
             self.oc = not self.o
         elif event.keysym in "0Ll1HhXxWwZzUu":
             self.key_level(event.keysym.upper())
@@ -740,11 +747,9 @@ class Part(Figure):
 
     def increase(self):
         log('increase')
-        self.mirror()
 
     def decrease(self):
         log('decrease')
-        self.flip()
 
     def operate(self):
         log(self.id + "does not operate")
