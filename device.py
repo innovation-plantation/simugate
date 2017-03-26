@@ -185,6 +185,7 @@ class Diode(circuit.Part):
             self.c = self.add_pin(20, 0, dx=-12, invertible=False)  # cathode
 
     def operate(self):
+        if not hasattr(self,'c'): return
         a = logic.dianfn(self.a.in_value, self.c.in_value)
         c = logic.dicafn(self.a.in_value, self.c.in_value)
         self.a.out_value = a

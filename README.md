@@ -8,7 +8,7 @@ Get the directory and run any of the following python programs:
 * exercises.ttl_exercise.py  -  create a gate using transistors
 Copy whatever exercises you want to make available up to the main folder.
 
-![image](https://cloud.githubusercontent.com/assets/26174810/24321477/df1e6a34-10f1-11e7-939c-60f8d1c604b7.png)
+![image](https://cloud.githubusercontent.com/assets/26174810/24330080/d3ef8032-11b2-11e7-836e-2c79d422c18e.png)
 
 You need Python to be installed. Python3 works. (with tkinter, which typically is normally bundled with Python)
 
