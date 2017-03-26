@@ -82,7 +82,6 @@ def do_gui():
     menu.add_command(label='Zoom in', command=zoom_in)
     menu.add_command(label='Zoom out', command=zoom_out)
     tk.config(menu=menu)
-
     circuit.run()
 
 if __name__=='__main__':

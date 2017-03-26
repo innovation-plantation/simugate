@@ -341,6 +341,17 @@ class Box(circuit.Part):
     def create_bottom_pins(self, names):
         return self.create_pins(names, self.create_bottom_pin)
 
+    def resize(self,width=None, height=None, vpad=None, hpad=None):
+        if height is None: height = self.height/10-self.vpad
+        if width is None: width = self.width/10-self.hpad
+        if vpad is None: vpad = self.vpad
+        if hpad is None: hpad = self.hpad
+        self.width, self.height = 10 * (hpad + width), 10 * (vpad + height)
+        self.vpad, self.hpad = vpad, hpad
+        x,y = self.xy
+        coords = x-self.width, y-self.height, x+self.width, y-self.height, x+self.width, y+self.height, x-self.width, y+self.height
+        self.canvas.coords(self.shape, coords)
+        self.canvas.coords(self.glow, coords)
 
 class Decoder(Box):
     def __init__(self, *args, bits=2, **kwargs):

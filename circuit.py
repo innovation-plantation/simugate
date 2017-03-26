@@ -6,6 +6,7 @@ import tkinter
 import autonum
 import logic
 import netlist
+import save
 
 debug = False
 log = print if debug else lambda *x: None
@@ -148,6 +149,31 @@ class ProtoWire(Item):
             coords = self.canvas.coords(each)
             coords[4], coords[5] = x, y
             self.canvas.coords(each, coords)
+
+class ProtoParts(Item):
+    instance = None
+    def __init__(self, x, y):
+        self.shapes = [
+            (part,part.canvas.create_polygon(part.canvas.coords(sn),fill='lime',outline='green',width=10))
+            for sn, part in Part.selected_sn_part.items()
+        ]
+        self.x0,self.y0 = self.x,self.y = x,y
+        ProtoParts.instance = self
+
+    def move(self,x,y):
+        for shape in self.shapes:
+            shape[0].canvas.move(shape[1],x-self.x,y-self.y)
+        self.x,self.y = x,y
+
+    def dup(self,x,y):
+        if x==self.x0 and y==self.y0: return
+        save.dup_selected(x-self.x0,y-self.y0)
+
+    def clear(self,x,y):
+        for shape in self.shapes:
+            shape[0].canvas.delete(shape[1])
+        self.shapes=[]
+        ProtoParts.instance = None
 
 
 class Wire(Item):
@@ -603,6 +629,7 @@ class Part(Figure):
         self.canvas.tag_bind(self.shape, '<Control-Button-1>', lambda event: self.mouse_pressed(event,ctrl=True))
         self.canvas.tag_bind(self.shape, '<Control-Shift-Button-1>', lambda event: self.mouse_pressed(event,shift=True,ctrl=True))
         self.canvas.tag_bind(self.shape, '<B1-Motion>', lambda event: self.mouse_moved(event))
+        self.canvas.tag_bind(self.shape, '<ButtonRelease>', lambda event: self.mouse_released(event))
         Part.allparts.append(self)
         Part.sn_part[self.sn] = self
         self.canvas.bind('<Control-Button-1>', lambda e:canvas_press(e,ctrl=True))
@@ -644,14 +671,26 @@ class Part(Figure):
         elif not self.selected:
             Part.clear_selection()
             self.selected = True
-        for sn,item in Part.selected_sn_part.items():
-            item.old_xy = x, y
+        if ctrl:
+            ProtoParts(event.x,event.y)
+        else:
+            for sn,item in Part.selected_sn_part.items():
+                item.old_xy = x, y
+
 
     def mouse_moved(self, event):
         x,y = event.widget.canvasx(event.x),event.widget.canvasy(event.y)
-        for sn,item in Part.selected_sn_part.items():
-            item.move(x - item.old_xy[0], y - item.old_xy[1])
-            item.old_xy = x, y
+        if ProtoParts.instance:
+            ProtoParts.instance.move(x,y)
+        else:
+            for sn,item in Part.selected_sn_part.items():
+                item.move(x - item.old_xy[0], y - item.old_xy[1])
+                item.old_xy = x, y
+
+    def mouse_released(self,event):
+        if ProtoParts.instance:
+            ProtoParts.instance.dup(event.x,event.y)
+            ProtoParts.instance.clear(event.x,event.y)
 
     def typed(self, event):
         log(event.keysym)

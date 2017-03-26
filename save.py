@@ -8,7 +8,7 @@ import netlist
 
 
 
-def write_file(file):
+def write_file(file, selected=False):
     config = configparser.ConfigParser()
     config.optionxform = lambda option: option
 
@@ -22,25 +22,24 @@ def write_file(file):
                             for pin in part.children if "Pin_" in pin.id])
 
 
-    print("circuit.Part.allparts",circuit.Part.allparts)
+    allparts = [part for part in circuit.Part.allparts if part.selected] if selected else circuit.Part.allparts
 
     config['PARTS'] = {part:
                            "%d %d : %s" %
                            (round(int(part.xy[0]), 1),
                             round(int(part.xy[1]), 1),
                             pinlist(part))
-                       for part in circuit.Part.allparts}
+                       for part in allparts}
 
     config['WIRES'] = {'net_%d' % n:
                            ' '.join([pinnum(pin) for segment in netlist.groups[n] for pin in segment])
                        for n in range(len(netlist.groups))}
-
     config['ORIENT'] = {part:
                            "%d %d %d %d"%part.orientation
-                       for part in circuit.Part.allparts if part.orientation != (100,0,0,100) }
+                       for part in allparts if part.orientation != (100,0,0,100) }
 
     config['PROG'] = {part: part.prog_data
-                       for part in circuit.Part.allparts if 'prog_data' in dir(part)}
+                       for part in allparts if 'prog_data' in dir(part)}
     config.write(file)
     return config
 
@@ -92,6 +91,7 @@ def load_from_config(config, dx=0, dy=0):
             for i in range(0, len(pin_numbers), 2):
                 src = pin_numbers[i]
                 dst = pin_numbers[i + 1]
+                if src not in pinmap or dst not in pinmap: continue
                 a= pinmap[src]
                 b= pinmap[dst]
                 a.route(b)
@@ -102,10 +102,15 @@ def read_file(filename):
     config.read(filename)
     load_from_config(config)
 
+def dup_selected(dx,dy):
+    f = io.StringIO()
+    config = write_file(f, selected=True)
+    f.seek(0)
+    load_from_config(config, dx=dx, dy=dy)
 
 def dump():
     f = io.StringIO()
-    config = write_file(f)
+    config = write_file(f, )
     f.seek(0)
     print(f.read())
     load_from_config(config, dx=50, dy=50)
