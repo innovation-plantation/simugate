@@ -1,5 +1,5 @@
 # simugate
-Python simulation of logic gates, circuits, down to transistor level using std_logic levels
+Python simulation of logic gates, circuits, down to transistor level using IEEE 1164 std_logic levels
 
 Get the directory and run any of the following python programs: 
 * simugate.py  -  main program for designing gates, along with 2 exercise windows included in different ways
