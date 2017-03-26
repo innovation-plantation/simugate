@@ -8,7 +8,7 @@ Get the directory and run any of the following python programs:
 * exercises.ttl_exercise.py  -  create a gate using transistors
 Copy whatever exercises you want to make available up to the main folder.
 
-![image](https://cloud.githubusercontent.com/assets/26174810/24163063/8e89e558-0e0d-11e7-8d14-37d183a29f26.png)
+![image](https://cloud.githubusercontent.com/assets/26174810/24321477/df1e6a34-10f1-11e7-939c-60f8d1c604b7.png)
 
 You need Python to be installed. Python3 works. (with tkinter, which typically is normally bundled with Python)
 
@@ -23,4 +23,4 @@ For open collector output, set the .oc member True. Currently OCBuf, OCLatch, & 
 
 Functions of the ALU are subject to change at this point.
 
-This is still pre-release. Before I consider it released, you should at least be able drag and drop to copy selected items.
+The plus key can be used to increase the number of pins on selected gates.
