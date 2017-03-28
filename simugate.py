@@ -10,8 +10,9 @@ def launch_exercise(exercise):
     exercise()
 
 def gui_launch(exercise=None):
-    gui.do_gui()
+    circuit.Figure.default_canvas = None
     main_window.destroy()
+    gui.do_gui()
     if exercise: exercise()
 
 main_window = tkinter.Tk()
