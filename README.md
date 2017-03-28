@@ -28,9 +28,13 @@ The plus key can be used to increase the number of pins on selected gates.
 off or pulled down signals are black. On or pulled-up signals are red. Orange indicates unknown.
 
 Type the character while an input pin is selected to set its value to any std_logic value except '-'
+
 0,1,X: Forced signals (force-off, force-on, unknown or contention from both) drawn as heavy lines
+
 L,H,W: Weak signals (pull-down, pull-up, unknown or contention from both) drawn as thin lines
+
 Z: High impedence (floating with no signal) drawn as a thin blue-violet line.
+
 U: "Uninitialized" is bright cyan colored.
 
 Run simugate.py to get a menu with options to do one of several exercises or to open a schematic editor.
