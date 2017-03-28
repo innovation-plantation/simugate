@@ -33,3 +33,4 @@ L,H,W: Weak signals (pull-down, pull-up, unknown or contention from both) drawn 
 Z: High impedence (floating with no signal) drawn as a thin blue-violet line.
 U: "Uninitialized" is bright cyan colored.
 
+Run simugate.py to get a menu with options to do one of several exercises or to open a schematic editor.
