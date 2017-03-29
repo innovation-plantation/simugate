@@ -342,7 +342,7 @@ class Box(circuit.Part):
     def create_bottom_pins(self, names):
         return self.create_pins(names, self.create_bottom_pin)
 
-    def resize(self,width=None, height=None, vpad=None, hpad=None):
+    def resize_shape(self, width=None, height=None, vpad=None, hpad=None):
         if height is None: height = self.height/10-self.vpad
         if width is None: width = self.width/10-self.hpad
         if vpad is None: vpad = self.vpad
@@ -368,6 +368,27 @@ class Decoder(Box):
             for n in range(len(self.o)): self.o[n].out_value = '1' if n == value else '0'
         except LookupError:
             for n in range(len(self.o)): self.o[n].out_value = 'X'
+
+    def increase(self):
+        print("INC")
+        n = len(self.i)
+        m = len(self.o)
+        if n > 1 and max(max(self.orientation), -min(self.orientation)) == 100:
+            # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
+            orient = self.orientation
+            self.orientation = 100, 000, 000, 100
+            oldheight = self.height
+            oldwidth = self.width
+            self.resize_shape(width=n + 1, height=2 ** (n + 1))
+            for k in range(n):
+                self.canvas.move(self.i[k].group, 10,self.height-oldheight)
+            for k in range(m):
+                self.canvas.move(self.o[k].group, self.width-oldwidth, 10*m)
+            self.i.append(self.create_bottom_pin(name='s%d' % 2 ** n ,x=-10 * n))
+            for k in range(m,m+m):
+                self.o.append(self.create_right_pin(k,y=20*(m-k)-10))
+            self.orientation = orient
+            self.move_wires()
 
 
 class Mux(Box):
