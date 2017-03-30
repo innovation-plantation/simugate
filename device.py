@@ -21,7 +21,7 @@ def sample_pins(pins):
 
 
 def set_pins(pins, value):
-    for n in range(4):
+    for n in range(len(pins)):
         pins[n].out_value = '1' if value & 1 << n else '0'
 
 
@@ -354,9 +354,9 @@ class Box(circuit.Part):
         self.canvas.coords(self.shape, coords)
         self.canvas.coords(self.glow, coords)
 
-    def increment_width_double_height(self,addr=None,lhs=None,rhs=None):
+    def increment_width_double_height(self,addr=None,lhs=None,rhs=None,extra_lhs=[],extra_rhs=[],extra_bottom=[],bottom_label_fn=lambda n:'s%d' % 2 ** n,left_label_fn=lambda n:n,right_label_fn=lambda n:n):
         n = len(addr) if addr else 0
-        m = len(rhs) if lhs else len(rhs) if rhs else 0
+        m = len(lhs) if lhs else len(rhs) if rhs else 0
         if n>7 or m>128: return
         if max(max(self.orientation), -min(self.orientation)) != 100: return
         # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
@@ -370,25 +370,37 @@ class Box(circuit.Part):
         if m:
             for k in range(m):
                 if rhs: self.canvas.move(rhs[k].group, self.width-oldwidth, 10*m)
-                if lhs: self.canvas.move(lhs[k].group, self.width - oldwidth, 10 * m)
+                if lhs: self.canvas.move(lhs[k].group, -self.width + oldwidth, 10 * m)
         if n:
-            addr.append(self.create_bottom_pin(name='s%d' % 2 ** n ,x=-10 * n))
+            addr.append(self.create_bottom_pin(name=bottom_label_fn(n),x=-10 * n))
         if m:
             for k in range(m,m+m):
-                if rhs: rhs.append(self.create_right_pin(k,y=20*(m-k)-10))
-                if lhs: lhs.append(self.create_right_pin(k, y=20 * (m - k) - 10))
+                if rhs: rhs.append(self.create_right_pin(right_label_fn(k),y=20*(m-k)-10))
+                if lhs: lhs.append(self.create_left_pin(left_label_fn(k), y=20 * (m - k) - 10))
+        for pin in extra_lhs:
+            self.canvas.move(pin.group, -self.width + oldwidth, 0)
+        for pin in extra_rhs:
+            self.canvas.move(pin.group, self.width - oldwidth, 0)
+        for pin in extra_bottom:
+            self.canvas.move(pin.group, 0,self.height - oldheight)
         self.orientation = orient
         self.move_wires()
 
-    def decrement_width_halve_size(self,addr=None,lhs=None,rhs=None):
+    def decrement_width_halve_size(self,addr=None,lhs=None,rhs=None,extra_lhs=[],extra_rhs=[],extra_bottom=[]):
         n = len(addr) if addr else 0
-        m = len(rhs) if lhs else len(rhs) if rhs else 0
+        m = len(lhs) if lhs else len(rhs) if rhs else 0
         if n!=0 and n<=2: return
         if m!=0 and m<=4: return
         if max(max(self.orientation), -min(self.orientation)) != 100: return
         if rhs is not None and any(rhs[k].has_wires_connected() for k in range(m//2,m)): return
         if lhs is not None and any(lhs[k].has_wires_connected() for k in range(m//2,m)): return
         if n!=0 and addr[n-1].has_wires_connected(): return
+        if max(max(self.orientation), -min(self.orientation)) != 100: return
+        # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
+        orient = self.orientation
+        self.orientation = 100, 000, 000, 100
+        oldwidth, oldheight = self.width, self.height
+        self.resize_shape(width=n - 1 if n else None, height=m//2 if m else None)
         if n:
             addr[n-1].remove()
             addr.pop(n-1)
@@ -400,8 +412,6 @@ class Box(circuit.Part):
                 if lhs:
                     lhs[k].remove()
                     lhs.pop(k)
-        oldwidth, oldheight = self.width, self.height
-        self.resize_shape(width=n - 1 if n else None, height=m//2 if m else None)
         if n:
             for k in range(n-1):
                 self.canvas.move(addr[k].group, -10,self.height-oldheight)
@@ -410,10 +420,20 @@ class Box(circuit.Part):
                 self.canvas.move(addr[k].group, 0,self.height-oldheight)
         if m:
             for k in range(m//2):
-                self.canvas.move(rhs[k].group, self.width-oldwidth, -5*m)
+                if rhs: self.canvas.move(rhs[k].group, self.width-oldwidth, -5*m)
+                if lhs: self.canvas.move(lhs[k].group, -self.width+oldwidth, -5*m)
         else:
             for k in range(m):
-                self.canvas.move(rhs[k].group, self.width-oldwidth, 0)
+                if rhs: self.canvas.move(rhs[k].group, self.width-oldwidth, 0)
+                if lhs: self.canvas.move(lhs[k].group, -self.width+oldwidth, 0)
+        for pin in extra_lhs:
+            self.canvas.move(pin.group, -self.width + oldwidth, 0)
+        for pin in extra_rhs:
+            self.canvas.move(pin.group, self.width - oldwidth, 0)
+        for pin in extra_bottom:
+            self.canvas.move(pin.group, 0,self.height - oldheight)
+        self.orientation = orient
+        self.move_wires()
 
 
 class Decoder(Box):
@@ -433,46 +453,10 @@ class Decoder(Box):
 
     def increase(self):
         self.increment_width_double_height(self.i,rhs=self.o)
-        # return
-        # n = len(self.i)
-        # m = len(self.o)
-        # if (n>7): return
-        # if max(max(self.orientation), -min(self.orientation)) != 100: return
-        # # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
-        # orient = self.orientation
-        # self.orientation = 100, 000, 000, 100
-        # oldwidth,oldheight  = self.width,self.height
-        # self.resize_shape(width=n + 1, height=2 ** (n + 1))
-        # for k in range(n):
-        #     self.canvas.move(self.i[k].group, 10,self.height-oldheight)
-        # for k in range(m):
-        #     self.canvas.move(self.o[k].group, self.width-oldwidth, 10*m)
-        # self.i.append(self.create_bottom_pin(name='s%d' % 2 ** n ,x=-10 * n))
-        # for k in range(m,m+m):
-        #     self.o.append(self.create_right_pin(k,y=20*(m-k)-10))
-        # self.orientation = orient
-        # self.move_wires()
 
     def decrease(self):
         self.decrement_width_halve_size(self.i,rhs=self.o)
-        # return
-        # n = len(self.i)
-        # m = len(self.o)
-        # if n<=2: return
-        # if max(max(self.orientation), -min(self.orientation)) != 100: return
-        # if any(self.o[k].has_wires_connected() for k in range(m//2,m)): return
-        # if self.i[n-1].has_wires_connected(): return
-        # self.i[n-1].remove()
-        # self.i.pop(n-1)
-        # for k in range(m-1,m//2-1,-1):
-        #     self.o[k].remove()
-        #     self.o.pop(k)
-        # oldwidth, oldheight = self.width, self.height
-        # self.resize_shape(width=n - 1, height=2 ** (n - 1))
-        # for k in range(n-1):
-        #     self.canvas.move(self.i[k].group, -10,self.height-oldheight)
-        # for k in range(m//2):
-        #     self.canvas.move(self.o[k].group, self.width-oldwidth, -5*m)
+
 
 
 class Mux(Box):
@@ -490,6 +474,13 @@ class Mux(Box):
             self.o.out_value = logic.buffn(self.i[value].in_value)
         except LookupError:
             self.o.out_value = 'X'
+
+    def increase(self):
+        self.increment_width_double_height(self.a,lhs=self.i,extra_rhs=[self.o])
+
+    def decrease(self):
+        self.decrement_width_halve_size(self.a,lhs=self.i,extra_rhs=[self.o])
+
 
 
 class DMux(Box):
@@ -509,6 +500,13 @@ class DMux(Box):
             for n in range(len(self.o)): self.o[n].out_value = 'X'
 
 
+    def increase(self):
+        self.increment_width_double_height(self.a,rhs=self.o,extra_lhs=[self.i])
+
+    def decrease(self):
+        self.decrement_width_halve_size(self.a,rhs=self.o,extra_lhs=[self.i])
+
+
 class Latch(Box):
     def __init__(self, *args, bits=4, **kwargs):
         w, h = 1, bits
@@ -523,11 +521,21 @@ class Latch(Box):
         if not hasattr(self,'clk'): return
         clk = sample(self.clk)
         if self.old_clk == '0' and clk == '1':
-            for bit in range(4):
+            for bit in range(min(len(self.m),len(self.o))):
                 self.m[bit] = logic.buffn(self.i[bit].in_value)
         self.old_clk = clk
-        for bit in range(4):
+        for bit in range(min(len(self.m),len(self.o))):
             self.o[bit].out_value = self.m[bit]
+
+    def increase(self):
+        if len(self.m) > 128: return
+        self.m.extend(['X']*len(self.m))
+        self.increment_width_double_height(lhs=self.i,rhs=self.o,extra_bottom=[self.clk],left_label_fn=lambda n:'',right_label_fn=lambda n:('' if n&3 else n))
+
+    def decrease(self):
+        if len(self.m)<=4: return
+        self.decrement_width_halve_size(lhs=self.i,rhs=self.o,extra_bottom=[self.clk])
+        del self.m[len(self.m)//2:]
 
 
 class Mem(Box):
@@ -711,7 +719,6 @@ class ALU(Adder):
             for n in range(4):
                 self.o[n].out_value = 'X'
 
-
 class Counter(Box):
     def __init__(self, *args, bits=4, **kwargs):
         w, h = 1, bits
@@ -744,25 +751,37 @@ class Counter(Box):
         if self.value >= 0:
             set_pins(self.o, self.value)
         else:
-            for bit in range(4):
-                self.o[bit].out_value = 'X'
+            for pin in self.o:
+                pin.out_value = 'X'
         self.old_clk = clk
 
+    def increase(self):
+        self.increment_width_double_height(lhs=self.i,rhs=self.o,extra_bottom=[self.rst,self.clk, self.ld ],left_label_fn=lambda n:'',right_label_fn=lambda n:('' if n&3 else n))
+    def decrease(self):
+        self.decrement_width_halve_size(lhs=self.i,rhs=self.o,extra_bottom=[self.rst,self.clk, self.ld ])
 
 class Clock(Box):
     def __init__(self, *args, **kwargs):
+        self.delay = 1000
         super().__init__(*args, label='Clock', height=0, width=1, **kwargs)
         self.o = self.create_right_pin('')
         self.value = '0'
-        circuit.Figure.default_canvas.after(1000, lambda: self.tick())
+        circuit.Figure.default_canvas.after(self.delay, lambda: self.tick())
 
     def tick(self):
         self.value = '1' if self.value == '0' else '0'
-        circuit.Figure.default_canvas.after(1000, lambda: self.tick())
+        circuit.Figure.default_canvas.after(self.delay, lambda: self.tick())
 
     def operate(self):
         if not hasattr(self,'o'): return
         self.o.out_value = self.value
+
+    def increase(self):
+        if self.delay > 100: # down to 1/16 second only
+            self.delay //=2
+    def decrease(self):
+        if self.delay < 100000: # up to 128 seconds only
+            self.delay *=2
 
 
 class OCLatch(Latch):
@@ -844,6 +863,15 @@ class Driver(Box):
             for n in range(len(self.o)): self.o[n].out_value = sample(self.i[n])
         else:
             for n in range(len(self.o)): self.o[n].out_value ='Z' if e == '0' else 'X'
+
+    def increase(self):
+        self.increment_width_double_height(lhs=self.i,rhs=self.o,extra_bottom=[self.e],left_label_fn=lambda n:'',right_label_fn=lambda n:('' if n&3 else n))
+    def decrease(self):
+        self.decrement_width_halve_size(lhs=self.i,rhs=self.o,extra_bottom=[self.e])
+        # BUG WORKAROUND: decrease fails to remove children pins for tri-state m-bit driver. Affects saving and copying.
+        for child in self.children[:]:
+            if not child in self.i+self.o and child != self.e:
+                self.children.remove(child)
 
 class OCDriver(Driver):
      def __init__(self, *args, **kwargs):

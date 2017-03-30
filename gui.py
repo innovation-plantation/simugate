@@ -76,7 +76,7 @@ def do_gui():
     ]:
         menu.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
 
-    #menu.add_command(label='Dump and Dup', command=save.dump)
+    #menu.add_command(label='Dump and Dup', command=save.dump) # for quick testing of save and reload
     menu.add_command(label='Save as...', command=save.saveas)
     menu.add_command(label='Load', command=save.load)
     menu.add_command(label='Zoom in', command=zoom_in)
