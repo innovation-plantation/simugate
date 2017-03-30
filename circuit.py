@@ -298,6 +298,7 @@ class Inversion(Figure):
 class Pin(Figure):
     proto = None
     stiffness = 1
+    previous_routed = None
 
     @property
     def oc(self):
@@ -387,6 +388,7 @@ class Pin(Figure):
 
         for tag in (self.shape, self.line):
             self.canvas.tag_bind(tag, '<Button-1>', lambda event: self.mouse_down(event))
+            self.canvas.tag_bind(tag, '<Double-Button-1>', lambda event: self.mouse_double(event))
             self.canvas.tag_bind(tag, '<B1-Motion>', lambda event: self.mouse_move(event))
             self.canvas.tag_bind(tag, '<ButtonRelease-1>', lambda event: self.mouse_up(event))
 
@@ -438,7 +440,29 @@ class Pin(Figure):
                 mindist = dist
         if closest:
             self.route(closest)
+            if closest != self:
+                Pin.previous_routed = [self.id,closest.id]
         Pin.proto = None
+
+    def mouse_double(self,event):
+        if Pin.previous_routed is None: return
+        p0,p1 = Item.get(Pin.previous_routed[0],"Pin"),Item.get(Pin.previous_routed[1],"Pin")
+        if p0 is None or p1 is None: return
+        if self.parent == p1.parent and (self.xy[0] == p1.xy[0] or self.xy[1] == p1.xy[1]): p0, p1 = p1, p0
+        src_minx = min(p0.xy[0],self.xy[0])
+        src_maxx = max(p0.xy[0],self.xy[0])
+        src_miny = min(p0.xy[1],self.xy[1])
+        src_maxy = max(p0.xy[1],self.xy[1])
+
+        for src_pin in p0.parent.children:
+            if src_pin is p0: continue
+            if src_minx <= src_pin.xy[0] <= src_maxx and src_miny <= src_pin.xy[1] <= src_maxy:
+                dx,dy = src_pin.xy[0] - p0.xy[0], src_pin.xy[1]-p0.xy[1]
+                for dest_pin in p1.parent.children:
+                    if dest_pin is p1: continue
+                    if dest_pin.xy == [p1.xy[0]+dx, p1.xy[1]+dy]:
+                        src_pin.route(dest_pin)
+
 
     def get_wire(self, other):
         return Wire.segments.get(tuple(sorted([self, other])))
@@ -642,7 +666,10 @@ class Part(Figure):
         self.canvas.focus_set()
 
 
-    def __del__(self):
+    def __del__(self):  # Non-deterministic - get rid of this source of bugs. Don't rely on the destructor getting clalled
+        print("NOT GOOD TO RELY ON __DEL__. NEED TO CALL DEL_PART DIRECTLY")
+        self.del_part()
+    def del_part(self):
         Part.allparts.remove(self)
         Item.instances.remove(self)
         Part.sn_part.pop(self.sn)
