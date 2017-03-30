@@ -354,6 +354,68 @@ class Box(circuit.Part):
         self.canvas.coords(self.shape, coords)
         self.canvas.coords(self.glow, coords)
 
+    def increment_width_double_height(self,addr=None,lhs=None,rhs=None):
+        n = len(addr) if addr else 0
+        m = len(rhs) if lhs else len(rhs) if rhs else 0
+        if n>7 or m>128: return
+        if max(max(self.orientation), -min(self.orientation)) != 100: return
+        # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
+        orient = self.orientation
+        self.orientation = 100, 000, 000, 100
+        oldwidth,oldheight  = self.width,self.height
+        self.resize_shape(width=n + 1 if n else None, height=m+m if m else None)
+        if n:
+            for k in range(n):
+                self.canvas.move(addr[k].group, 10,self.height-oldheight)
+        if m:
+            for k in range(m):
+                if rhs: self.canvas.move(rhs[k].group, self.width-oldwidth, 10*m)
+                if lhs: self.canvas.move(lhs[k].group, self.width - oldwidth, 10 * m)
+        if n:
+            addr.append(self.create_bottom_pin(name='s%d' % 2 ** n ,x=-10 * n))
+        if m:
+            for k in range(m,m+m):
+                if rhs: rhs.append(self.create_right_pin(k,y=20*(m-k)-10))
+                if lhs: lhs.append(self.create_right_pin(k, y=20 * (m - k) - 10))
+        self.orientation = orient
+        self.move_wires()
+
+    def decrement_width_halve_size(self,addr=None,lhs=None,rhs=None):
+        n = len(addr) if addr else 0
+        m = len(rhs) if lhs else len(rhs) if rhs else 0
+        if n!=0 and n<=2: return
+        if m!=0 and m<=4: return
+        if max(max(self.orientation), -min(self.orientation)) != 100: return
+        if rhs is not None and any(rhs[k].has_wires_connected() for k in range(m//2,m)): return
+        if lhs is not None and any(lhs[k].has_wires_connected() for k in range(m//2,m)): return
+        if n!=0 and addr[n-1].has_wires_connected(): return
+        if n:
+            addr[n-1].remove()
+            addr.pop(n-1)
+        if m:
+            for k in range(m-1,m//2-1,-1):
+                if rhs:
+                    rhs[k].remove()
+                    rhs.pop(k)
+                if lhs:
+                    lhs[k].remove()
+                    lhs.pop(k)
+        oldwidth, oldheight = self.width, self.height
+        self.resize_shape(width=n - 1 if n else None, height=m//2 if m else None)
+        if n:
+            for k in range(n-1):
+                self.canvas.move(addr[k].group, -10,self.height-oldheight)
+        else:
+            for k in range(n):
+                self.canvas.move(addr[k].group, 0,self.height-oldheight)
+        if m:
+            for k in range(m//2):
+                self.canvas.move(rhs[k].group, self.width-oldwidth, -5*m)
+        else:
+            for k in range(m):
+                self.canvas.move(rhs[k].group, self.width-oldwidth, 0)
+
+
 class Decoder(Box):
     def __init__(self, *args, bits=2, **kwargs):
         w, h = bits, 2 ** bits
@@ -370,48 +432,47 @@ class Decoder(Box):
             for n in range(len(self.o)): self.o[n].out_value = 'X'
 
     def increase(self):
-        n = len(self.i)
-        m = len(self.o)
-        if (n>7): return
-        if max(max(self.orientation), -min(self.orientation)) != 100: return
-        # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
-        orient = self.orientation
-        self.orientation = 100, 000, 000, 100
-        oldwidth,oldheight  = self.width,self.height
-        self.resize_shape(width=n + 1, height=2 ** (n + 1))
-        for k in range(n):
-            self.canvas.move(self.i[k].group, 10,self.height-oldheight)
-        for k in range(m):
-            self.canvas.move(self.o[k].group, self.width-oldwidth, 10*m)
-        self.i.append(self.create_bottom_pin(name='s%d' % 2 ** n ,x=-10 * n))
-        for k in range(m,m+m):
-            self.o.append(self.create_right_pin(k,y=20*(m-k)-10))
-        self.orientation = orient
-        self.move_wires()
+        self.increment_width_double_height(self.i,rhs=self.o)
+        # return
+        # n = len(self.i)
+        # m = len(self.o)
+        # if (n>7): return
+        # if max(max(self.orientation), -min(self.orientation)) != 100: return
+        # # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
+        # orient = self.orientation
+        # self.orientation = 100, 000, 000, 100
+        # oldwidth,oldheight  = self.width,self.height
+        # self.resize_shape(width=n + 1, height=2 ** (n + 1))
+        # for k in range(n):
+        #     self.canvas.move(self.i[k].group, 10,self.height-oldheight)
+        # for k in range(m):
+        #     self.canvas.move(self.o[k].group, self.width-oldwidth, 10*m)
+        # self.i.append(self.create_bottom_pin(name='s%d' % 2 ** n ,x=-10 * n))
+        # for k in range(m,m+m):
+        #     self.o.append(self.create_right_pin(k,y=20*(m-k)-10))
+        # self.orientation = orient
+        # self.move_wires()
 
     def decrease(self):
-        n = len(self.i)
-        m = len(self.o)
-        print("DEC")
-        if n<=2: return
-        if max(max(self.orientation), -min(self.orientation)) != 100: return
-        if any(self.o[k].has_wires_connected() for k in range(m//2,m)): return
-        if self.i[n-1].has_wires_connected(): return
-        print("OK TO DECREMENT")
-        self.i[n-1].remove()
-        self.i.pop(n-1)
-        for k in range(m-1,m//2-1,-1):
-            self.o[k].remove()
-            self.o.pop(k)
-        oldwidth, oldheight = self.width, self.height
-        self.resize_shape(width=n - 1, height=2 ** (n - 1))
-        for k in range(n-1):
-            self.canvas.move(self.i[k].group, -10,self.height-oldheight)
-        for k in range(m//2):
-            self.canvas.move(self.o[k].group, self.width-oldwidth, -5*m)
-        #TODO: same for o.
-        #TODO: move remaining pins
-
+        self.decrement_width_halve_size(self.i,rhs=self.o)
+        # return
+        # n = len(self.i)
+        # m = len(self.o)
+        # if n<=2: return
+        # if max(max(self.orientation), -min(self.orientation)) != 100: return
+        # if any(self.o[k].has_wires_connected() for k in range(m//2,m)): return
+        # if self.i[n-1].has_wires_connected(): return
+        # self.i[n-1].remove()
+        # self.i.pop(n-1)
+        # for k in range(m-1,m//2-1,-1):
+        #     self.o[k].remove()
+        #     self.o.pop(k)
+        # oldwidth, oldheight = self.width, self.height
+        # self.resize_shape(width=n - 1, height=2 ** (n - 1))
+        # for k in range(n-1):
+        #     self.canvas.move(self.i[k].group, -10,self.height-oldheight)
+        # for k in range(m//2):
+        #     self.canvas.move(self.o[k].group, self.width-oldwidth, -5*m)
 
 
 class Mux(Box):
