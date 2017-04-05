@@ -21,7 +21,6 @@ def do_gui():
     v = tkinter.Scrollbar(tk, command=can.yview);
     v.pack(side=tkinter.RIGHT, fill=tkinter.Y)
     can.pack()
-    tk.geometry('{}x{}'.format(1024 - 3,768 - 3)) # Original window size for "legacy behavior"
 
     menu = tkinter.Menu(tk)
 
