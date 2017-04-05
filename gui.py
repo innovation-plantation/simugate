@@ -14,12 +14,14 @@ def somewhere():
 
 def do_gui():
     tk = tkinter.Tk()
-    can = circuit.Figure.default_canvas = tkinter.Canvas(tk, height='800', width='1000',scrollregion=(0,0,5000,5000))
+    # use screen size for max canvas box so that the working box should never be smaller than the window
+    can = circuit.Figure.default_canvas = tkinter.Canvas(tk, height=tk.winfo_screenheight(), width = tk.winfo_screenwidth(),scrollregion=(0,0,5000,5000))
     h = tkinter.Scrollbar(tk, command=can.xview, orient=tkinter.HORIZONTAL);
     h.pack(side=tkinter.BOTTOM, fill=tkinter.X)
     v = tkinter.Scrollbar(tk, command=can.yview);
     v.pack(side=tkinter.RIGHT, fill=tkinter.Y)
     can.pack()
+    tk.geometry('{}x{}'.format(1024 - 3,768 - 3)) # Original window size for "legacy behavior"
 
     menu = tkinter.Menu(tk)
 
