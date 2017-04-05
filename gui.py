@@ -84,7 +84,7 @@ def do_gui():
     # like "nand gate" and "nand gate (OC)"
     for item in [
         ('NOT gate', device.Not),
-        ('3-state gate', device.Tri),
+        ('3-state buffer', device.Tri),
         ('AND gate', device.And),
         ('OR gate', device.Or),
         ('XOR gate', device.Xor),
