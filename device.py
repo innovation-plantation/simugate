@@ -67,6 +67,10 @@ class Gate(circuit.Part):
                 if hasattr(self, 'extra_scaling'): self.extra_scaling(n)
             self.orientation = orient
             self.move_wires()
+            # BUG WORKAROUND: decrease fails to remove children pins. Affects saving and copying.
+            for child in self.children[:]:
+                if not child in self.i+[self.o]:
+                    self.children.remove(child)
 
 
     def increase(self):
@@ -434,6 +438,11 @@ class Box(circuit.Part):
             self.canvas.move(pin.group, 0,self.height - oldheight)
         self.orientation = orient
         self.move_wires()
+
+        # BUG WORKAROUND: decrease fails to remove children pins. Affects saving and copying.
+        for child in self.children[:]:
+            if not child in extra_bottom + extra_lhs + extra_rhs + (lhs if lhs else []) + (rhs if rhs else []) + (addr if addr else []):
+                self.children.remove(child)
 
 
 class Decoder(Box):
@@ -868,7 +877,7 @@ class Driver(Box):
         self.increment_width_double_height(lhs=self.i,rhs=self.o,extra_bottom=[self.e],left_label_fn=lambda n:'',right_label_fn=lambda n:('' if n&3 else n))
     def decrease(self):
         self.decrement_width_halve_size(lhs=self.i,rhs=self.o,extra_bottom=[self.e])
-        # BUG WORKAROUND: decrease fails to remove children pins for tri-state m-bit driver. Affects saving and copying.
+        # BUG WORKAROUND: decrease fails to remove children pins. Affects saving and copying.
         for child in self.children[:]:
             if not child in self.i+self.o and child != self.e:
                 self.children.remove(child)
