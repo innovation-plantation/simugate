@@ -119,6 +119,7 @@ def do_gui():
         # group
         ('Latch', device.Latch),
         ('Counter', device.Counter),
+        ('Ring Counter', device.RingCounter),
         ('Memory', device.Mem),
         ('ROM', device.ROM),
         # group OC

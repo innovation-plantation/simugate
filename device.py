@@ -364,6 +364,68 @@ class Box(circuit.Part):
         self.canvas.coords(self.shape, coords)
         self.canvas.coords(self.glow, coords)
 
+    def increment_height(self,lhs=None,rhs=None,extra_lhs=[],extra_rhs=[],extra_bottom=[],bottom_label_fn=lambda n:'s%d' % 2 ** n,left_label_fn=lambda n:n,right_label_fn=lambda n:n):
+        n = len(lhs) if lhs else len(rhs) if rhs else 0
+        if n>128 or n<1: return
+        if max(max(self.orientation), -min(self.orientation)) != 100: return
+        # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
+        orient = self.orientation
+        self.orientation = 100, 000, 000, 100
+        oldwidth,oldheight  = self.width,self.height
+        self.resize_shape(None, height=n+1 if n else None)
+
+        for k in range(n):
+            if rhs: self.canvas.move(rhs[k].group, self.width-oldwidth, 10)
+            if lhs: self.canvas.move(lhs[k].group, -self.width + oldwidth, 10)
+        if rhs: rhs.append(self.create_right_pin(right_label_fn(n),y=-10*n))
+        if lhs: lhs.append(self.create_left_pin(left_label_fn(n), y=-10*n))
+        for pin in extra_lhs:
+            self.canvas.move(pin.group, -self.width + oldwidth, 0)
+        for pin in extra_rhs:
+            self.canvas.move(pin.group, self.width - oldwidth, 0)
+        for pin in extra_bottom:
+            self.canvas.move(pin.group, 0,self.height - oldheight)
+        self.orientation = orient
+        self.move_wires()
+
+    def decrement_height(self,lhs=None,rhs=None,extra_lhs=[],extra_rhs=[],extra_bottom=[],bottom_label_fn=lambda n:'s%d' % 2 ** n,left_label_fn=lambda n:n,right_label_fn=lambda n:n):
+        n = len(lhs) if lhs else len(rhs) if rhs else 0
+        if n<=4: return
+        if max(max(self.orientation), -min(self.orientation)) != 100: return
+        if rhs is not None and any(rhs[k].has_wires_connected() for k in range(n-1,n)): return
+        if lhs is not None and any(lhs[k].has_wires_connected() for k in range(n-1,n)): return
+        if max(max(self.orientation), -min(self.orientation)) != 100: return
+        # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
+        orient = self.orientation
+        self.orientation = 100, 000, 000, 100
+        oldwidth, oldheight = self.width, self.height
+        self.resize_shape(height=n - 1 if n else None, width=None)
+
+        k = n-1
+        if rhs:
+            rhs[k].remove()
+            rhs.pop(k)
+        if lhs:
+            lhs[k].remove()
+            lhs.pop(k)
+
+        for k in range(n-1):
+            if rhs: self.canvas.move(rhs[k].group, self.width-oldwidth, -10)
+            if lhs: self.canvas.move(lhs[k].group, -self.width+oldwidth, -10)
+        for pin in extra_lhs:
+            self.canvas.move(pin.group, -self.width + oldwidth, 0)
+        for pin in extra_rhs:
+            self.canvas.move(pin.group, self.width - oldwidth, 0)
+        for pin in extra_bottom:
+            self.canvas.move(pin.group, 0,self.height - oldheight)
+        self.orientation = orient
+        self.move_wires()
+
+        # BUG WORKAROUND: decrease fails to remove children pins. Affects saving and copying.
+        for child in self.children[:]:
+            if not child in extra_bottom + extra_lhs + extra_rhs + (lhs if lhs else []) + (rhs if rhs else []):
+                self.children.remove(child)
+
     def increment_width_double_height(self,addr=None,lhs=None,rhs=None,extra_lhs=[],extra_rhs=[],extra_bottom=[],bottom_label_fn=lambda n:'s%d' % 2 ** n,left_label_fn=lambda n:n,right_label_fn=lambda n:n):
         n = len(addr) if addr else 0
         m = len(lhs) if lhs else len(rhs) if rhs else 0
@@ -955,3 +1017,38 @@ class Keyboard(Box):
         self.keycode = event.keycode
         self.hit = '1'
 
+class RingCounter(Box):
+    def __init__(self, *args, bits=4, **kwargs):
+        w, h = 1, bits
+        super().__init__(*args, label='', height=h, width=2, **kwargs)
+        self.o = self.create_right_pins([n for n in range(h)])
+        self.value = -1
+        self.rst, self.clk  = self.create_bottom_pins(['RST', '^'])
+        self.old_clk = 'X'
+
+    def operate(self):
+        if not hasattr(self, 'clk'): return
+        clk = sample(self.clk)
+        rst = sample(self.rst)
+        if clk in 'ZXWU':
+            self.value = -1
+        elif self.old_clk == '0' and clk == '1':
+            if self.value > 0:
+                self.value <<= 1
+                if self.value >= 1 << len(self.o): self.value = 1
+        if rst in 'H1':
+            self.value = 1
+        if self.value >= 0:
+            set_pins(self.o, self.value)
+        else:
+            for pin in self.o:
+                pin.out_value = 'X'
+        self.old_clk = clk
+
+    def increase(self):
+        self.increment_height(rhs=self.o,lhs=None,extra_bottom=[self.clk,self.rst],left_label_fn=lambda n:'',right_label_fn=lambda n: n)
+        return self
+
+    def decrease(self):
+        self.decrement_height(rhs=self.o,lhs=None,extra_bottom=[self.clk,self.rst],left_label_fn=lambda n:'',right_label_fn=lambda n: n)
+        return self
