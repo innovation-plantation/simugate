@@ -54,6 +54,7 @@ def do_gui():
         ('Output Pin', device.OutputPin),
         ('Clock', device.Clock),
         ('Character Display',device.CharDisplay),
+        ('Keyboard', device.Keyboard),
     ]:
         m_io.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
 

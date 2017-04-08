@@ -319,7 +319,7 @@ class Box(circuit.Part):
         self.vpad, self.hpad = vpad, hpad
         coords = -self.width, -self.height, self.width, -self.height, self.width, self.height, -self.width, self.height
         super().__init__(*args, coords=coords, **kwargs)
-        self.left_pins, self.bottom_pins, self.right_pins = [], [], []
+        self.left_pins, self.bottom_pins, self.right_pins, self.top_pins = [], [], [], []
 
     def create_pins(self, names, add_pin):
         pins = []
@@ -337,6 +337,9 @@ class Box(circuit.Part):
     def create_bottom_pin(self, name='', x=0, **kw_args):
         return self.add_pin(x, self.height + 25, dy=-25, label=name, **kw_args)
 
+    def create_top_pin(self, name='', x=0, **kw_args):
+        return self.add_pin(x, -self.height - 25, dy=25, label=name, **kw_args)
+
     def create_left_pins(self, names):
         return self.create_pins(names, self.create_left_pin)
 
@@ -345,6 +348,9 @@ class Box(circuit.Part):
 
     def create_bottom_pins(self, names):
         return self.create_pins(names, self.create_bottom_pin)
+
+    def create_top_pins(self, names):
+        return self.create_pins(names, self.create_top_pin)
 
     def resize_shape(self, width=None, height=None, vpad=None, hpad=None):
         if height is None: height = self.height/10-self.vpad
@@ -919,3 +925,33 @@ class CharDisplay(Box):
         self.old_clk = clk
         for bit in range(len(self.m)):
             self.o[bit].out_value = self.m[bit]
+
+class Keyboard(Box):
+    def __init__(self, *args, **kwargs):
+        w, h = 7, 1
+        super().__init__(*args, label='', height=h-.5, width=w, **kwargs)
+        self.o = self.create_top_pins(['' for n in range(w)])
+        self.press = self.create_right_pin('HIT')
+        self.clear = self.create_left_pin('CLR')
+        x,y = self.xy
+        coords = []
+        for row in range (int(y)-14, int(y)+14,8):
+            coords = coords + [x-50,row,x+50,row,x+50,row+7,x-50,row+7]
+        for col in range(int(x)-50,int(x)+51,10):
+            coords = coords + [col,y-14, col,y+10, col,y-14]
+        self.canvas.create_line(coords, fill='lightgray',tags=self.group,state='disabled')
+        self.keycode = 0
+        self.hit = '0'
+
+    def operate(self):
+        set_pins(self.o,self.keycode)
+        clear = sample(self.clear)
+        if clear in "1H":
+            self.hit = '0'
+        self.press.out_value = self.hit
+
+    def typed(self,event):
+        if event.keysym == 'Delete': return circuit.Part.typed(self,event)
+        self.keycode = event.keycode
+        self.hit = '1'
+
