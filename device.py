@@ -1056,3 +1056,22 @@ class RingCounter(Box):
     def decrease(self):
         self.decrement_height(rhs=self.o,lhs=None,extra_bottom=[self.clk,self.rst],left_label_fn=lambda n:'',right_label_fn=lambda n: n)
         return self
+
+class Programmer(circuit.Part):
+    def __init__(self, *args,shape=[-50,-30, 50,-30,250,0, 250,300, -50,300],label='',**kwargs):
+        super().__init__(*args,coords=shape,label=label,**kwargs)
+        x,y=self.xy
+        self.editor = tkinter.Text(self.canvas, height=16, width=32, highlightthickness=1, pady=2, padx=3)
+        self.editor.insert(tkinter.INSERT, '0:[],\n0:""')
+        self.canvas.create_window(x+100,y+150, window=self.editor, tags=self.group)
+        self.button = tkinter.Button(self.canvas, text="Program",command=lambda: self.program_part())
+        self.canvas.create_window(x,y, window=self.button, tags=self.group)
+    def program_part(self):
+        text = self.editor.get("1.0", "end-1c")
+        print(text)
+        if True:
+            prog = eval("{%s}"%text)
+            ROM(self.xy[0] + 100, self.xy[1], data=prog)
+        # except:
+        #     self.editor.insert(tkinter.INSERT, '?')
+

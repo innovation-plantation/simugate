@@ -149,6 +149,8 @@ def do_gui():
         ('Latch', device.Latch),
         ('Memory', device.Mem),
         ('ROM', device.ROM),
+        ('ROM Progranner', device.Programmer),
+
     ]:
         m_stor.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
 
