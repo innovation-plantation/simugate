@@ -360,7 +360,7 @@ class Pin(Figure):
         super().__init__(x, y, canvas=canvas, fill=fill, scale=scale, smooth=smooth, **kwargs)
         self._in_value = 'Z'
         self._out_value = 'Z'
-        self._oc = False
+        self._oc = self._och = False
         self.line = self.id + '_line'
         self.canvas.create_line(x, y, x + dx, y + dy, tags=(self.group, self.line))
         self._out_value = output
@@ -408,6 +408,11 @@ class Pin(Figure):
                 self.out_value = '0' if self.out_value in '1H' else 'Z' if self.out_value in '0L' else self.out_value
             else:
                 self.out_value = 'Z' if self.out_value in '1H' else '0' if self.out_value in '0L' else self.out_value
+        elif self.och:
+            if self.inverted:
+                self.out_value = '1' if self.out_value in '0L' else 'Z' if self.out_value in '1H' else self.out_value
+            else:
+                self.out_value = 'Z' if self.out_value in '0L' else '1' if self.out_value in '1H' else self.out_value
         elif self.inverted:
             self.out_value = '0' if self.out_value in '1H' else '1' if self.out_value in '0L' else self.out_value
 
@@ -579,6 +584,22 @@ class Part(Figure):
             if self.sn in Part.selected_sn_part: Part.selected_sn_part.pop(self.sn)
 
     @property
+    def och(self):
+        return self._och
+    @och.setter
+    def och(self,value):
+        import tkinter.font
+        if not any(item.invertible for item in self.children): value = False
+        if self._och == value: return
+        self._och = value
+        if value:
+            self.och_text = self.canvas.create_text(*self.xy, state='disabled',
+                                                   font=tkinter.font.Font(weight='bold', size=14), tags=self.group)
+        else:
+            self.canvas.delete(self.och_text)
+        self.set_labels()
+        for o in self.children: o.och = value
+    @property
     def oc(self):
         return self._oc
     @oc.setter
@@ -587,14 +608,9 @@ class Part(Figure):
         if not any(item.invertible for item in self.children): value = False
         if self._oc == value: return
         self._oc = value
-
-        name = self.canvas.itemconfig(self.label)['text'][4]
-        if value:
-            self.oc_text = self.canvas.create_text(*self.xy, state='disabled',text="\n◇" if name else "◇", font=tkinter.font.Font(weight='bold', size=12, underline=1), tags=self.group)
-            self.canvas.itemconfig(self.label, text=name.strip()+'\n')
-        else:
-            self.canvas.delete(self.oc_text)
-            if name: self.canvas.itemconfig(self.label,text=name.strip())
+        if value: self.oc_text = self.canvas.create_text(*self.xy, state='disabled', font=tkinter.font.Font(weight='bold', size=14), tags=self.group)
+        else: self.canvas.delete(self.oc_text)
+        self.set_labels()
         for o in self.children: o.oc = value
 
     @property
@@ -630,24 +646,46 @@ class Part(Figure):
             if part.selected:
                 part.remove()
 
-    def rename(self, text): # could be improved
-        if self.oc and text:
-            self.canvas.itemconfig(self.label, text="%s\n"%text )
-            self.canvas.itemconfig(self.oc_text, text="\n◇")
-        elif self.oc:
-            self.canvas.itemconfig(self.label, text="")
-            self.canvas.itemconfig(self.oc_text, text="◇")
+
+    def nametext(self):
+        name = self.canvas.itemconfig(self.label)['text'][4]
+        return name.strip()
+    def octext(self):
+        return "\u2390" if self.oc else "\u238f" if self.och else ""
+
+    def set_labels(self, nametext=None, octext=None):
+        print({'octext':octext,'nametext':nametext})
+        if nametext is None: nametext = self.label_text
+        else: self.label_text = nametext
+        print({'octext':octext,'nametext':nametext})
+        if octext is None: octext = self.octext()
+        print({'octext':octext,'nametext':nametext})
+        if nametext and octext:
+            self.canvas.itemconfig(self.label, text="%s\n" % nametext)
+            if hasattr(self, 'oc_text'): self.canvas.itemconfig(self.oc_text, text="\n%s" % octext)
         else:
-            self.canvas.itemconfig(self.label, text="%s" % text)
+            self.canvas.itemconfig(self.label, text="%s" % nametext)
+            if hasattr(self,'oc_text'): self.canvas.itemconfig(self.oc_text, text="%s" % octext)
+
+    def rename(self, text): # could be improved
+        self.set_labels(nametext=text)
+        # if self.oc or self.och and text:
+        #     self.canvas.itemconfig(self.label, text="%s\n"%text )
+        #     self.canvas.itemconfig(self.oc_text, text="\n\⎐")
+        # elif self.oc:
+        #     self.canvas.itemconfig(self.label, text="")
+        #     self.canvas.itemconfig(self.oc_text, text="⎐")
+        # else:
+        #     self.canvas.itemconfig(self.label, text="%s" % text)
 
 
     def __init__(self, x=100, y=100, label=None, **kwargs):
         super().__init__(x, y,  **kwargs)
-        self._oc = False
+        self._oc = self._och = False
         self.pins = []
         self.label = '%s_label' % self.id
-        if label is None: label = self.id
-        self.canvas.create_text(x, y, tags=(self.label, self.group), text=label, state=tkinter.DISABLED)
+        self.label_text = self.id if label is None else label
+        self.canvas.create_text(x, y, tags=(self.label, self.group), text=self.label_text, state=tkinter.DISABLED)
         self.canvas.tag_bind(self.shape, '<Button-1>', lambda event: self.mouse_pressed(event))
         self.canvas.tag_bind(self.shape, '<Shift-Button-1>', lambda event: self.mouse_pressed(event,shift=True))
         self.canvas.tag_bind(self.shape, '<Control-Button-1>', lambda event: self.mouse_pressed(event,ctrl=True))

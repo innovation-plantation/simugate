@@ -37,7 +37,9 @@ def do_gui():
 
     # Menu Definitions
 
-    menu = tkinter.Menu(tk)     # menu Main
+    main_menu = tkinter.Menu(tk)     # menu Main
+
+    menu = tkinter.Menu(tk)
 
     # File Menu
     m_file = tkinter.Menu(tk)   # dropdown File
@@ -52,30 +54,36 @@ def do_gui():
     for item in [
         ('Input Pin', device.InputPin),
         ('Output Pin', device.OutputPin),
+        # bus
+        ('Bus', device.Bus),
         ('Clock', device.Clock),
         ('Character Display',device.CharDisplay),
         ('Keyboard', device.Keyboard),
     ]:
         m_io.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
 
-    # Components
-    m_comp = tkinter.Menu(tk)   # dropdown logic Components
+
+    m_voltage = tkinter.Menu(tk)
+    for item in [
+        # strong
+        ('Direct voltage source', device.Source),
+        ('Logic ground', device.Ground),
+        # weak
+        ('Pull-up Resistor Pack', device.PullupPack),  # for use with OC bus
+        ('Pull-up Resistor', device.Pullup),
+        ('Pull-down Resistor', device.Pulldown)
+    ]:
+        m_voltage.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
+
+    # Discrete Components
+    m_discrete = tkinter.Menu(tk)   # dropdown discrete Components
     for item in [
         # transistors and diode
         ('NPN Transistor', device.NPN),
         ('PNP Transistor', device.PNP),
         ('Diode', device.Diode),
-        # bus
-        ('Bus', device.Bus),
-        # weak
-        ('Pull-up Resistor Pack', device.PullupPack),  # for use with OC bus
-        ('Pull-up Resistor', device.Pullup),
-        ('Pull-down Resistor', device.Pulldown),
-        # strong
-        ('Direct voltage source', device.Source),
-        ('Logic ground', device.Ground),
     ]:
-        m_comp.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
+        m_discrete.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
 
     # Gates
     m_gate = tkinter.Menu(tk)   # dropdown Logic Gates
@@ -129,20 +137,30 @@ def do_gui():
     ]:
         m_stor.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
 
+
+    # View commands
+    m_view = tkinter.Menu(tk)
+    for item in [
+        ('Zoom in',zoom_in),
+        ('Zoom out', zoom_out),
+    ]:
+        m_view.add_command(label=item[0], command=item[1])
+
+
     # add the dropdowns and items to the menu
-    menu.add_cascade(label="File", menu=m_file)
-    menu.add_cascade(label="I/O Components", menu=m_io)
-    menu.add_cascade(label="Discrete Components, Bus and Logic levels", menu=m_comp)
+    main_menu.add_cascade(label="File", menu=m_file)
+    main_menu.add_cascade(label="Power", menu=m_voltage)
+    main_menu.add_cascade(label="I/O", menu=m_io)
+    main_menu.add_cascade(label="Add Component", menu=menu)
+    main_menu.add_cascade(label="View", menu=m_view)
+
+    menu.add_cascade(label="Discrete Components, Bus and Logic levels", menu=m_discrete)
     menu.add_cascade(label="Logic Gates", menu=m_gate)
     menu.add_cascade(label="Drivers and Combinatorial Logic", menu=m_adva)
     menu.add_cascade(label="Storage Devices", menu=m_stor)
 
-    # View commands
-    menu.add_command(label='Zoom in', command=zoom_in)
-    menu.add_command(label='Zoom out', command=zoom_out)
-
     # add the full menu to the canvas and run
-    tk.config(menu=menu)
+    tk.config(menu=main_menu)
     circuit.run()
 
 if __name__=='__main__':

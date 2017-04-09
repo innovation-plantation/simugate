@@ -159,6 +159,7 @@ class Not(Gate):
         super().__init__(*args, label='NOT', fn=logic.orfn, init='0', inputs=[0], inverted=True, **kwargs)
 
     def inversion_change(self):
+        print("INVERTING")
         self.rename('NOT' if self.o.bubble.inverted else '')
 
 
