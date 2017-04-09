@@ -2,6 +2,7 @@ import functools
 import math
 import re
 import tkinter
+import tkinter.font
 
 import autonum
 import logic
@@ -591,36 +592,41 @@ class Part(Figure):
             if self.sn in Part.selected_sn_part: Part.selected_sn_part.pop(self.sn)
 
     @property
+    def oc_type(self):
+        return self._oc_type
+    @oc_type.setter
+    def oc_type(self,value):
+        if value=='PNP': self.och=True
+        elif value=='NPN': self.oc=True
+        else:
+            self.oc = False
+            self.och = False
+
+    @property
     def och(self):
-        return self._och
+        return self._oc_type=="PNP"
     @och.setter
     def och(self,value):
-        import tkinter.font
+        if hasattr(self,'force_oc'):
+            print(self," part is deprecated. Replace with new part without open-collector")
+            return
         if not any(item.invertible for item in self.children): value = False
-        if self._och == value: return
-        self._och = value
-        if value:
-            if self.oc: self.oc = False
-            self.oc_text = self.canvas.create_text(*self.xy, state='disabled',
-                                                   font=tkinter.font.Font(weight='bold', size=14), tags=self.group)
-        else:
-            self.canvas.delete(self.oc_text)
+        if self.och == value: return
+        self._oc_type = "PNP" if value else ""
         self.set_labels()
         for o in self.children:
             o.och = value
     @property
     def oc(self):
-        return self._oc
+        return self._oc_type=="NPN"
     @oc.setter
     def oc(self,value):
-        import tkinter.font
+        if hasattr(self, 'force_oc'):
+            print(self," part is deprecated. Replace with new part without open-collector")
+            return
         if not any(item.invertible for item in self.children): value = False
-        if self._oc == value: return
-        self._oc = value
-        if value:
-            if self.och: self.och = False
-            self.oc_text = self.canvas.create_text(*self.xy, state='disabled', font=tkinter.font.Font(weight='bold', size=14), tags=self.group)
-        else: self.canvas.delete(self.oc_text)
+        if self.oc == value: return
+        self._oc_type = "NPN" if value else ""
         self.set_labels()
         for o in self.children:
             o.oc = value
@@ -663,7 +669,7 @@ class Part(Figure):
         name = self.canvas.itemconfig(self.label)['text'][4]
         return name.strip()
     def octext(self):
-        return "\u2390 " if self.oc else "\u238f " if self.och else ""
+        return "\u2390" if self.oc else "\u238f" if self.och else ""
 
     def set_labels(self, nametext=None, octext=None):
         if nametext is None: nametext = self.label_text
@@ -671,30 +677,23 @@ class Part(Figure):
         if octext is None: octext = self.octext()
         if nametext and octext:
             self.canvas.itemconfig(self.label, text="%s\n" % nametext)
-            if hasattr(self, 'oc_text'): self.canvas.itemconfig(self.oc_text, text="\n%s" % octext)
+            self.canvas.itemconfig(self.oc_text, text="\n%s" % octext)
         else:
             self.canvas.itemconfig(self.label, text="%s" % nametext)
-            if hasattr(self,'oc_text'): self.canvas.itemconfig(self.oc_text, text="%s" % octext)
+            self.canvas.itemconfig(self.oc_text, text="%s" % octext)
 
     def rename(self, text): # could be improved
         self.set_labels(nametext=text)
-        # if self.oc or self.och and text:
-        #     self.canvas.itemconfig(self.label, text="%s\n"%text )
-        #     self.canvas.itemconfig(self.oc_text, text="\n\⎐")
-        # elif self.oc:
-        #     self.canvas.itemconfig(self.label, text="")
-        #     self.canvas.itemconfig(self.oc_text, text="⎐")
-        # else:
-        #     self.canvas.itemconfig(self.label, text="%s" % text)
-
 
     def __init__(self, x=100, y=100, label=None, **kwargs):
+        self._oc_type = ""
         super().__init__(x, y,  **kwargs)
-        self._oc = self._och = False
         self.pins = []
         self.label = '%s_label' % self.id
         self.label_text = self.id if label is None else label
         self.canvas.create_text(x, y, tags=(self.label, self.group), text=self.label_text, state=tkinter.DISABLED)
+        self.oc_text = self.canvas.create_text(*self.xy, state='disabled',
+                                               font=tkinter.font.Font(weight='bold', size=14), tags=self.group)
         self.canvas.tag_bind(self.shape, '<Button-1>', lambda event: self.mouse_pressed(event))
         self.canvas.tag_bind(self.shape, '<Shift-Button-1>', lambda event: self.mouse_pressed(event,shift=True))
         self.canvas.tag_bind(self.shape, '<Control-Button-1>', lambda event: self.mouse_pressed(event,ctrl=True))
@@ -792,7 +791,7 @@ class Part(Figure):
             self.key_level(None)
         elif event.keysym == 'Delete':
             Part.delete_all_selected()
-        else: print(event.keysym)
+        else: pass #print(event.keysym)
 
 
     def key_level(self,key):

@@ -36,11 +36,13 @@ def do_gui():
 
     def toggle_open_collector():
         for part in circuit.Part.allparts:
-            part.oc = not part.oc
+            if part.selected:
+                part.oc = not part.oc
 
     def toggle_pnp_open_collector():
         for part in circuit.Part.allparts:
-            part.och = not part.och
+            if part.selected:
+                part.och = not part.och
 
     # Menu Definitions
 
@@ -53,7 +55,7 @@ def do_gui():
 
     m_file.add_command(label='Save as...', command=save.saveas)
     m_file.add_command(label='Load', command=save.load)
-    #m_file.add_command(label='Dump and Dup', command=save.dump) # for quick testing of save and reload
+    m_file.add_command(label='Dump and Dup', command=save.dump) # for quick testing of save and reload
     m_file.add_command(label='Quit', command=tk.quit)
 
     # I/O

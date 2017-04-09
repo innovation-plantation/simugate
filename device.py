@@ -864,17 +864,17 @@ class Clock(Box):
 class OCLatch(Latch):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.oc=True
+        self.oc=self.force_oc=True
 
 class OCMem(Mem):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.oc=True
+        self.oc=self.force_oc=True
 
 class OCROM(ROM):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.oc=True
+        self.oc=self.force_oc=True
 
 class Buf(Gate):
     def __init__(self, *args, **kwargs):
@@ -886,18 +886,18 @@ class Buf(Gate):
 class OCBuf(Buf):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.oc=True
+        self.oc=self.force_oc=True
 
 class OCNand(And):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.oc=True
+        self.oc=self.force_oc=True
         self.o.bubble.inverted=True
 
 class OCNor(Or):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.oc=True
+        self.oc=self.force_oc=True
         self.o.bubble.inverted=True
 
 
@@ -957,7 +957,7 @@ class Driver(Box):
 class OCDriver(Driver):
      def __init__(self, *args, **kwargs):
          super().__init__(*args,**kwargs)
-         self.oc = True
+         self.oc = self.force_oc=True
 
 class Bus(circuit.Part):
     def __init__(self, *args,label='', coords=(-2,-40, -2,40, 2,40, 2,-40), **kwargs):

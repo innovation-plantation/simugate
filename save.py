@@ -31,6 +31,9 @@ def write_file(file, selected=False):
                             pinlist(part))
                        for part in allparts}
 
+    config['OC'] = {part: part.oc_type
+                       for part in allparts if part.oc_type}
+
     config['WIRES'] = {'net_%d' % n:
                            ' '.join([pinnum(pin) for segment in netlist.groups[n] for pin in segment])
                        for n in range(len(netlist.groups))}
@@ -40,6 +43,10 @@ def write_file(file, selected=False):
 
     config['PROG'] = {part: part.prog_data
                        for part in allparts if 'prog_data' in dir(part)}
+
+    for section in config.sections():
+            if not len(config[section]):
+                config.remove_section(section)
     config.write(file)
     return config
 
@@ -77,6 +84,8 @@ def load_from_config(config, dx=0, dy=0):
                     unit.children[i].bubble.inverted = pin_numbers[i] < 0
                     pin_numbers[i] = abs(pin_numbers[i])
                     pinmap[pin_numbers[i]] = unit.children[i]
+                if 'OC' in config and partrecord in config['OC']:
+                    unit.oc_type =  config['OC'][partrecord]
                 if 'ORIENT' in config and partrecord in config['ORIENT']:
                     orientdata = [int(num) for num in config['ORIENT'][partrecord].split(' ') if len(num.strip()) > 0]
                     unit.orientation = orientdata
