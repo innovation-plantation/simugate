@@ -308,6 +308,13 @@ class Pin(Figure):
         self._oc = value
 
     @property
+    def och(self):
+        return self._och if hasattr(self,'_och') else None
+    @och.setter
+    def och(self,value):
+        self._och = value
+
+    @property
     def inverted(self):
         if self.bubble:
             return self.bubble.inverted
@@ -593,12 +600,14 @@ class Part(Figure):
         if self._och == value: return
         self._och = value
         if value:
-            self.och_text = self.canvas.create_text(*self.xy, state='disabled',
+            if self.oc: self.oc = False
+            self.oc_text = self.canvas.create_text(*self.xy, state='disabled',
                                                    font=tkinter.font.Font(weight='bold', size=14), tags=self.group)
         else:
-            self.canvas.delete(self.och_text)
+            self.canvas.delete(self.oc_text)
         self.set_labels()
-        for o in self.children: o.och = value
+        for o in self.children:
+            o.och = value
     @property
     def oc(self):
         return self._oc
@@ -608,10 +617,13 @@ class Part(Figure):
         if not any(item.invertible for item in self.children): value = False
         if self._oc == value: return
         self._oc = value
-        if value: self.oc_text = self.canvas.create_text(*self.xy, state='disabled', font=tkinter.font.Font(weight='bold', size=14), tags=self.group)
+        if value:
+            if self.och: self.och = False
+            self.oc_text = self.canvas.create_text(*self.xy, state='disabled', font=tkinter.font.Font(weight='bold', size=14), tags=self.group)
         else: self.canvas.delete(self.oc_text)
         self.set_labels()
-        for o in self.children: o.oc = value
+        for o in self.children:
+            o.oc = value
 
     @property
     def orientation(self):
@@ -651,15 +663,12 @@ class Part(Figure):
         name = self.canvas.itemconfig(self.label)['text'][4]
         return name.strip()
     def octext(self):
-        return "\u2390" if self.oc else "\u238f" if self.och else ""
+        return "\u2390 " if self.oc else "\u238f " if self.och else ""
 
     def set_labels(self, nametext=None, octext=None):
-        print({'octext':octext,'nametext':nametext})
         if nametext is None: nametext = self.label_text
         else: self.label_text = nametext
-        print({'octext':octext,'nametext':nametext})
         if octext is None: octext = self.octext()
-        print({'octext':octext,'nametext':nametext})
         if nametext and octext:
             self.canvas.itemconfig(self.label, text="%s\n" % nametext)
             if hasattr(self, 'oc_text'): self.canvas.itemconfig(self.oc_text, text="\n%s" % octext)

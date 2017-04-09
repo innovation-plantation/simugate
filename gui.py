@@ -34,6 +34,13 @@ def do_gui():
         canvas = circuit.Figure.default_canvas
         canvas.scale(tkinter.ALL, 0,0, .5,.5)
 
+    def toggle_open_collector():
+        for part in circuit.Part.allparts:
+            part.oc = not part.oc
+
+    def toggle_pnp_open_collector():
+        for part in circuit.Part.allparts:
+            part.och = not part.och
 
     # Menu Definitions
 
@@ -54,14 +61,10 @@ def do_gui():
     for item in [
         ('Input Pin', device.InputPin),
         ('Output Pin', device.OutputPin),
-        # bus
-        ('Bus', device.Bus),
-        ('Clock', device.Clock),
         ('Character Display',device.CharDisplay),
         ('Keyboard', device.Keyboard),
     ]:
         m_io.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
-
 
     m_voltage = tkinter.Menu(tk)
     for item in [
@@ -93,22 +96,38 @@ def do_gui():
     # it would look nicer if everything was similar to start with
     # like "nand gate" and "nand gate (OC)"
     for item in [
-        ('NOT gate', device.Not),
-        ('3-state buffer', device.Tri),
-        ('AND gate', device.And),
-        ('OR gate', device.Or),
-        ('XOR gate', device.Xor),
-        ('Buffer (Open Collector)', device.OCBuf),
-        ('NAND gate (Open Collector)', device.OCNand),
-        ('NOR gate (Open Collector)', device.OCNor),
+        ('Not', device.Not),
+        ('And', device.And),
+        ('Or', device.Or),
+        ('Xor', device.Xor),
     ]:
         m_gate.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
 
-    # Advanced
-    m_adva = tkinter.Menu(tk)   # dropdown Logic Advanced
+    m_ctrl = tkinter.Menu(tk)   # dropdown Timing and Control
     for item in [
-        ('3-state Driver', device.Driver),
-        ('Driver (Open Collector)', device.OCDriver),
+        ('Clock', device.Clock),
+        ('Counter', device.Counter),
+        ('Ring Counter', device.RingCounter),
+    ]:
+        m_ctrl.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
+
+    # Bus interface
+    m_bus = tkinter.Menu(tk)    # dropdown Bus Interface
+    for item in [
+        # bus
+        ('Bus', device.Bus),
+        ('Buffer', device.Buf),
+        ('3-state buffer', device.Tri),
+        ('Multi-bit driver', device.Driver),
+    ]:  m_bus.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
+    for item in [
+        ('Toggle NPN open collector', toggle_open_collector),
+        ('Toggle PNP open collector (rare)', toggle_pnp_open_collector)
+    ]:  m_bus.add_command(label=item[0], command=item[1])
+
+    # Combinatorial logic
+    m_adva = tkinter.Menu(tk)   # dropdown Combinatorial logic
+    for item in [
         ('Decoder', device.Decoder),
         ('Mux', device.Mux),
         ('DMux', device.DMux),
@@ -117,23 +136,17 @@ def do_gui():
     ]:
         m_adva.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
 
-    # Storage
-    m_stor = tkinter.Menu(tk)   # dropdown Storage
+    # State
+    m_stor = tkinter.Menu(tk)   # dropdown State
     for item in [
-        # single
+        # single-bit
         ('SR Flip-Flop (Level-triggered)', device.SR_flipflop),
         ('D Flip-Flop (Level-triggered)', device.D_flipflop),
         ('D Flip-Flop (Edge-triggered)', device.D_edge),
-        # group
+        # multi-bit
         ('Latch', device.Latch),
-        ('Counter', device.Counter),
-        ('Ring Counter', device.RingCounter),
         ('Memory', device.Mem),
         ('ROM', device.ROM),
-        # group OC
-        ('Latch (Open Collector)', device.OCLatch),
-        ('Memory (Open Collector)', device.OCMem),
-        ('ROM (Open Collector)', device.OCROM),
     ]:
         m_stor.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
 
@@ -151,13 +164,14 @@ def do_gui():
     main_menu.add_cascade(label="File", menu=m_file)
     main_menu.add_cascade(label="Power", menu=m_voltage)
     main_menu.add_cascade(label="I/O", menu=m_io)
-    main_menu.add_cascade(label="Add Component", menu=menu)
+    main_menu.add_cascade(label="Component", menu=menu)
+    main_menu.add_cascade(label="Bus Interface", menu=m_bus)
     main_menu.add_cascade(label="View", menu=m_view)
-
-    menu.add_cascade(label="Discrete Components, Bus and Logic levels", menu=m_discrete)
-    menu.add_cascade(label="Logic Gates", menu=m_gate)
-    menu.add_cascade(label="Drivers and Combinatorial Logic", menu=m_adva)
-    menu.add_cascade(label="Storage Devices", menu=m_stor)
+    menu.add_cascade(label="Discrete", menu=m_discrete)
+    menu.add_cascade(label="Gate", menu=m_gate)
+    menu.add_cascade(label="Timing & Control", menu=m_ctrl)
+    menu.add_cascade(label="Combinatorial", menu=m_adva)
+    menu.add_cascade(label="State", menu=m_stor)
 
     # add the full menu to the canvas and run
     tk.config(menu=main_menu)
