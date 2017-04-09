@@ -55,7 +55,7 @@ def do_gui():
 
     m_file.add_command(label='Save as...', command=save.saveas)
     m_file.add_command(label='Load', command=save.load)
-    m_file.add_command(label='Dump and Dup', command=save.dump) # for quick testing of save and reload
+    #m_file.add_command(label='Dump and Dup', command=save.dump) # for quick testing of save and reload
     m_file.add_command(label='Quit', command=tk.quit)
 
     # I/O
