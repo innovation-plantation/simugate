@@ -3,23 +3,23 @@ def split_carry(a, n=4):
     return a & ((1 << n) - 1), bool(a >> n) & 1
 
 
-alu_config = {
+alu_config = {  # function, name, number of input reigsters
     0: (lambda a, b, n=4: (a, None,), 'XFER', 1),
     1: (lambda a, b, n=4: (a ^ b, None), 'XOR', 2),
     2: (lambda a, b, n=4: (a & b, None,), 'AND', 2),
     3: (lambda a, b, n=4: (a | b, None), 'OR', 2),
     4: (lambda a, b, n=4: (~a, None), 'NOT', 1),
     5: (lambda a, b, n=4: split_carry(-a, n), 'NEG', 1),
-    6: (lambda a, b, n=4: split_carry(0, n), 'CLR', 0),
-    7: (lambda a, b, n=4: split_carry(-1), 'SET', 0),
+    6: (lambda a, b, n=4: split_carry(a+1), 'INC', 1),
+    7: (lambda a, b, n=4: split_carry(a-1), 'DEC', 1),
     0x8: (lambda a, b, n=4: split_carry(a + b), 'ADD', 2),
     0x9: (lambda a, b, n=4: split_carry(a + 1 + b), 'ADC', 2),
-    0xA: (lambda a, b, c, n=4: split_carry(a - b), 'SUB', 2),
+    0xA: (lambda a, b, n=4: split_carry(a - b), 'SUB', 2),
     0xB: (lambda a, b, n=4: split_carry(a - 1 - b), 'SBB', 2),
-    0xC: (lambda a, b, n=4: split_carry(a << 1 | a >> n & 1), 'ROL', 2),
-    0xD: (lambda a, b, c, n=4: split_carry(a + 1), 'INC', 1),
-    0xE: (lambda a, b, n=4: split_carry(a >> 1 | (a & 1) << n), 'ROR', 2),
-    0xF: (lambda a, b, c, n=4: split_carry(a - 1), 'DEC', 1),
+    0xC: (lambda a, b, n=4: split_carry(a << 1), 'SHL', 1),
+    0xD: (lambda a, b, n=4: split_carry((a << 1) |  1), 'RLC', 1),
+    0xE: (lambda a, b, n=4: split_carry(a >> 1), 'SHR', 1),
+    0xF: (lambda a, b, n=4: split_carry((a >> 1) | 1 << n), 'RRC', 1),
 }
 
 

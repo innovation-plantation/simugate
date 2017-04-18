@@ -177,6 +177,16 @@ class Tri(Gate):
 diag_diode_shape = (2, 2, 6, -2, 8, 0, 0, 8, -2, 6, 2, 2, -8, 0, 0, -8)
 diode_shape = (4, 0, 4, 6, 7, 6, 7, -6, 4, -6, 4, 0, -7, 6, -7, -6)  # 0, 8, -2, 6, 2, 2, -8, 0, 0, -8)
 
+def zigzag(x,y):
+    return [
+        x - 35, y,
+        x - 30, y - 5,
+        x - 25, y + 5,
+        x - 20, y - 5,
+        x - 15, y + 5,
+        x - 10, y - 5,
+        x - 5, y + 5,
+        x - 0, y]
 
 class Diode(circuit.Part):
     def __init__(self, *args, diag=False, **kwargs):
@@ -227,8 +237,8 @@ class PullupPack(circuit.Part):
     def operate(self):
         for pin in self.o: pin.out_value = 'H'
 
-
-
+    def increase(self):
+        pass
 
 class Pulldown(circuit.Part):
     def __init__(self, *args, **kwargs):
@@ -272,8 +282,9 @@ class NPN(circuit.Part):
                                 arrow=tkinter.LAST)  # e
         self.canvas.create_line(x - 17, y - 10, x - 17, y + 10, width=6, tags=(self.group, self.btag),
                                 state='disabled')  # b
-        self.canvas.create_line(x - 70, y, x - 65, y - 5, x - 60, y + 5, x - 55, y - 5, x - 50, y + 5, x - 45, y - 5,
-                                x - 40, y + 5, x - 35, y, x - 17, y, width=3,
+        self.canvas.create_line(x - 70, y,
+                                *zigzag(x-35,y),
+                                x - 17, y, width=3,
                                 tags=(self.group, self.shape, self.btag))  # r
         self.b = self.add_pin(x=-90, y=0, dx=20, invertible=False)
         self.c = self.add_pin(x=0, y=-35, dy=20, invertible=False)
@@ -298,8 +309,9 @@ class PNP(circuit.Part):
         self.canvas.create_line(x - 17, y + 5, x, y + 15, width=4, tags=(self.group, self.ctag), state='disabled')  # c
         self.canvas.create_line(x - 17, y - 10, x - 17, y + 10, width=6, tags=(self.group, self.btag),
                                 state='disabled')  # b
-        self.canvas.create_line(x - 70, y, x - 65, y - 5, x - 60, y + 5, x - 55, y - 5, x - 50, y + 5, x - 45, y - 5,
-                                x - 40, y + 5, x - 35, y, x - 17, y, width=3,
+        self.canvas.create_line(x - 70, y,
+                                *zigzag(x - 35, y),
+                                x - 17, y, width=3,
                                 tags=(self.group, self.shape, self.btag))  # r
         self.b = self.add_pin(x=-90, y=0, dx=20, invertible=False)
         self.e = self.add_pin(x=0, y=-35, dy=20, invertible=False)
