@@ -195,6 +195,7 @@ def do_gui():
     menu.add_cascade(label="Timing & Control", menu=m_ctrl)
     menu.add_cascade(label="Combinatorial", menu=m_adva)
     menu.add_cascade(label="State", menu=m_stor)
+    main_menu.add_command(label="Label", command=lambda:device.Labeler(*somewhere()))
 
     # add the full menu to the canvas and run
     tk.config(menu=main_menu)

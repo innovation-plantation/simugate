@@ -1138,3 +1138,18 @@ class Programmer(circuit.Part):
         # except:
         #     self.editor.insert(tkinter.INSERT, '?')
 
+import json
+class Labeler(circuit.Part):
+
+    @property
+    def prog_data(self):
+        return json.dumps(self.editor.get("1.0", "end-1c"))
+    @prog_data.setter
+    def prog_data(self,value):
+        self.editor.insert(tkinter.INSERT, json.loads(value))
+    def __init__(self, *args,shape=[0,-5,-10,-5, -10,-10, -20,0, -10,10, -10,5, 0,5],label='',**kwargs):
+        super().__init__(*args,coords=shape,label=label,**kwargs)
+        x,y=self.xy
+        self.editor = tkinter.Text(self.canvas, height=1, width=12, highlightthickness=1, pady=0, padx=3)
+        self.canvas.create_window(x+50,y, window=self.editor, tags=self.group)
+
