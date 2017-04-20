@@ -732,7 +732,7 @@ class Part(Figure):
                 name = name[1:]
                 kwargs['edge_triggered'] = True
             kwargs['label'] = name
-        pin = Pin(*args, **kwargs, parent=self)
+        pin = Pin(*args,  parent=self, **kwargs)
         return pin
 
     def mouse_pressed(self, event,ctrl=False,shift=False):
