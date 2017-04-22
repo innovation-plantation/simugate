@@ -1138,6 +1138,35 @@ class Programmer(circuit.Part):
         # except:
         #     self.editor.insert(tkinter.INSERT, '?')
 
+
+class RegisterFile(Box):
+    def __init__(self, *args, abits=8, dbits=8, **kwargs):
+        w, h = 7, max(abits,dbits)
+        super().__init__(*args, label='', height=h, width=w, vpad=0, **kwargs)
+        self.i = self.create_left_pins(['' for n in range(abits)])
+        self.o = self.create_right_pins(['' for n in range(dbits)])
+        self.m = [['X']*dbits for i in range(1<<abits)]
+        self.r,*self.a,self.clk = self.create_bottom_pins(['R',None,'','sel','',None,'^W'])
+        self.old_clk = 'X'
+
+    def operate(self):
+        if not hasattr(self,'clk'): return
+        clk = sample(self.clk)
+        r = sample(self.r)
+        try: addr = sample_pins(self.a)
+        except LookupError: addr=0
+        if self.old_clk == '0' and clk == '1':
+            for bit in range(len(self.i)):
+                self.m[addr][bit] = logic.buffn(self.i[bit].in_value)
+        self.old_clk = clk
+        if (r=='1'):
+            for bit in range(len(self.o)):
+                self.o[bit].out_value = self.m[addr][bit]
+        else:
+            for bit in range(len(self.o)):
+                self.o[bit].out_value = 'Z'
+
+
 import json
 class Labeler(circuit.Part):
 

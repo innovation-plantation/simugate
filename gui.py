@@ -164,6 +164,7 @@ def do_gui():
         ('D Flip-Flop (Edge-triggered)', device.D_edge),
         # multi-bit
         ('Latch', device.Latch),
+        ('Register File', device.RegisterFile),
         ('Memory', device.Mem),
         ('ROM', device.ROM),
         ('ROM Progranner', device.Programmer),
