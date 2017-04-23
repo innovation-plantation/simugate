@@ -150,8 +150,8 @@ def do_gui():
         ('Decoder', device.Decoder),
         ('Mux', device.Mux),
         ('DMux', device.DMux),
-        ('Adder', device.Adder),
-        ('ALU', device.ALU),
+        ('4-bit Adder', device.Adder),
+        ('8-bit ALU', device.ALU8),
     ]:
         m_adva.add_command(label=item[0], command=lambda constructor=item[1]: constructor(*somewhere()))
 

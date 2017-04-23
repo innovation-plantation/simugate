@@ -235,6 +235,7 @@ class PullupPack(circuit.Part):
                             tags=(self.group, self.shape))
 
     def operate(self):
+        if 'o' not in dir(self): return
         for pin in self.o: pin.out_value = 'H'
 
     def increase(self):
@@ -326,10 +327,10 @@ class PNP(circuit.Part):
 
 
 class Box(circuit.Part):
-    def __init__(self, *args, width=4, height=4, vpad=2, hpad=1, **kwargs):
+    def __init__(self, *args, width=4, height=4, coords=None, vpad=2, hpad=1, **kwargs):
         self.width, self.height = 10 * (hpad + width), 10 * (vpad + height)
         self.vpad, self.hpad = vpad, hpad
-        coords = -self.width, -self.height, self.width, -self.height, self.width, self.height, -self.width, self.height
+        if coords is None: coords = -self.width, -self.height, self.width, -self.height, self.width, self.height, -self.width, self.height
         super().__init__(*args, coords=coords, **kwargs)
         self.left_pins, self.bottom_pins, self.right_pins, self.top_pins = [], [], [], []
 
@@ -748,17 +749,26 @@ class D_edge(Box):
         self.q.out_value = self.m
         self.old_clk = clk
 
+def adder_shape(size):
+    return [-40, -20-20*size,
+                  40, 20-20*size,
+                  40, -20+20*size,
+                  -40, 20+20*size,
+                  -40, 10,
+                  -30, 0,
+                  -40, -10]
 
-class Adder(circuit.Part):
-    def __init__(self, *args, **kwargs):
-        coords = -40, -100, 40, -60, 40, 60, -40, 100, -40, 10, -30, 0, -40, -10
-        super().__init__(*args, label='', coords=coords, **kwargs)
-        self.a, self.b, self.o = [], [], []
-        for bit in range(4):
-            self.a.append(self.add_pin(-65, 0 - bit * 20 - 25, dx=25, label='a%d' % bit if bit % 4 == 3 else ''))
-            self.b.append(self.add_pin(-65, 110 - bit * 20 - 25, dx=25, label='b%d' % bit if bit % 4 == 3 else ''))
-            self.o.append(self.add_pin(65, 90 - bit * 20 - 15 - 25, dx=-25))
-        self.c = self.add_pin(65, 90 - 5 * 20 - 15 - 25, dx=-25)
+class Adder(Box):
+    def __init__(self, *args, size=4, **kwargs):
+        coords = adder_shape(size)
+        self.size = size
+        super().__init__(*args, label='', width=3, height=size*2+1,  coords=coords,
+                         **kwargs)
+        self.a, self.b, self.o= ([None]*size,)*3
+        pins = self.create_left_pins([""] * size + [None] + [""] * size)
+        self.a,self.b= pins[:size],pins[size:]
+        *self.o,self.c = self.create_right_pins([""]*size+[None]+[""])
+        print(self.o)
 
     def operate(self):
         if not hasattr(self,'c'): return
@@ -766,23 +776,25 @@ class Adder(circuit.Part):
             a = sample_pins(self.a)
             b = sample_pins(self.b)
             total = a + b
-            self.c.out_value = '1' if total & 0x10 else '0'
+            self.c.out_value = '1' if total & (1<<(self.size-1)) else '0'
             set_pins(self.o, total)
         except LookupError:
             self.c.out_value = 'X'
-            for n in range(4):
+            for n in range(self.size):
                 self.o[n].out_value = 'X'
 
 
 class ALU(Adder):
     #  16 functions such as ADD SUB ADC SBC  SLC SRC RLC RRC  AND OR XOR NOT  XFER STC CMC CLR
-    def __init__(self, *args, width=4, height=4, pad=1, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, size=4, **kwargs):
+        fnsize=4
+        height=fnsize
+        super().__init__(*args, size=size, **kwargs)
         self.f = []
-        for bit in range(4):
-            x = 30 - 20 * bit
-            y = 120
-            self.f.append(self.add_pin(x, y, dy=-15 - 10 * (4 - bit), label='s%d' % 2 ** bit))
+        for bit in range(fnsize):
+            x = 10*fnsize - 10 - 20 * bit
+            y = 20*self.size+fnsize*5+20#120
+            self.f.append(self.add_pin(x, y, dy=-15 - 10 * (fnsize - bit), label='s%d' % 2 ** bit))
         self.old_c = 'X'
 
     def operate(self):
@@ -797,7 +809,7 @@ class ALU(Adder):
                 raise
             a = sample_pins(self.a) if argc > 0 else 0
             b = sample_pins(self.b) if argc > 1 else 0
-            r, c = alu.alu_fn(f, a, b, 4)
+            r, c = alu.alu_fn(f, a, b, self.size)
             set_pins(self.o, r)
             if c is None:
                 self.c.out_value = self.old_c
@@ -805,7 +817,7 @@ class ALU(Adder):
                 self.old_c = self.c.out_value = '1' if c else '0'
         except (AttributeError,LookupError):
             self.c.out_value = 'X'
-            for n in range(4):
+            for n in range(self.size):
                 self.o[n].out_value = 'X'
 
 class Counter(Box):
@@ -1182,3 +1194,11 @@ class Labeler(circuit.Part):
         self.editor = tkinter.Text(self.canvas, height=1, width=12, highlightthickness=1, pady=0, padx=3)
         self.canvas.create_window(x+50,y, window=self.editor, tags=self.group)
 
+
+class ALU8(ALU):
+    def __init__(self,*args,size=8,**kwargs):
+        super().__init__(*args,size=size,**kwargs)
+
+class Adder8(Adder):
+    def __init__(self,*args,size=8,**kwargs):
+        super().__init__(*args,size=size,**kwargs)

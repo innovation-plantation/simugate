@@ -229,12 +229,13 @@ class Wire(Item):
         Item.remove(self)
         Wire.segments.pop(self.pins)
         return self.id
-
+    import math
     def get_coords(self):
         points = (*self.pins[0].xy, *self.pins[0].gravity, *self.pins[1].gravity, *self.pins[1].xy)
         x0, y0, x1, y1, x2, y2, x3, y3 = points
         # modify gravity effects in proportion to distance
         d = ((x3-x0)*(x3-x0)+(y3-y0)*(y3-y0))**.5
+        d = int(100*math.log((d+100)/100))
         y1 += d/100*(y1-y0)
         y2 += d/100*(y2-y3)
         x1 += d/100*(x1-x0)
