@@ -1132,7 +1132,14 @@ class RingCounter(Box):
         self.decrement_height(rhs=self.o,lhs=None,extra_bottom=[self.clk,self.rst],left_label_fn=lambda n:'',right_label_fn=lambda n: n)
         return self
 
+import json
 class Programmer(circuit.Part):
+    @property
+    def prog_data(self):
+        return json.dumps(self.editor.get("1.0", "end-1c"))
+    @prog_data.setter
+    def prog_data(self,value):
+        self.editor.insert(tkinter.INSERT, json.loads(value))
     def __init__(self, *args,shape=[-50,-30, 50,-30,250,0, 250,300, -50,300],label='',**kwargs):
         super().__init__(*args,coords=shape,label=label,**kwargs)
         x,y=self.xy
