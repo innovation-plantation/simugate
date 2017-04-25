@@ -28,20 +28,22 @@ def do_gui():
     def zoom_in_parts():
         for part in circuit.Part.allparts:
             if part.selected:
-                x,y = part.xy
-                part.canvas.move(part.group,-x,-y)
-                part.canvas.scale(part.group, 0,0, 2,2)
-                part.canvas.move(part.group,x,y)
-                part.move_wires()
+                part.zoom_grow()
+                # x,y = part.xy
+                # part.canvas.move(part.group,-x,-y)
+                # part.canvas.scale(part.group, 0,0, 2,2)
+                # part.canvas.move(part.group,x,y)
+                # part.move_wires()
 
     def zoom_out_parts():
         for part in circuit.Part.allparts:
             if part.selected and abs(part.orientation[0]) +  abs(part.orientation[1]) > 10:
-                x, y = part.xy
-                part.canvas.move(part.group, -x, -y)
-                part.canvas.scale(part.group, 0, 0, .5, .5)
-                part.canvas.move(part.group, x, y)
-                part.move_wires()
+                part.zoom_shrink()
+                # x, y = part.xy
+                # part.canvas.move(part.group, -x, -y)
+                # part.canvas.scale(part.group, 0, 0, .5, .5)
+                # part.canvas.move(part.group, x, y)
+                # part.move_wires()
 
     def zoom_in():
         canvas = circuit.Figure.default_canvas

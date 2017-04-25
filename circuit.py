@@ -767,6 +767,18 @@ class Part(Figure):
             ProtoParts.instance.dup(event.x,event.y)
             ProtoParts.instance.clear(event.x,event.y)
 
+    def zoom_grow(self):
+        x, y = self.xy
+        self.canvas.move(self.group, -x, -y)
+        self.canvas.scale(self.group, 0, 0, 2, 2)
+        self.canvas.move(self.group, x, y)
+        self.move_wires()
+    def zoom_shrink(self):
+        x, y = self.xy
+        self.canvas.move(self.group, -x, -y)
+        self.canvas.scale(self.group, 0, 0, .5, .5)
+        self.canvas.move(self.group, x, y)
+        self.move_wires()
     def typed(self, event):
         log(event.keysym)
         if event.keysym == "Right":
@@ -782,8 +794,12 @@ class Part(Figure):
             self.move_wires()
             self.canvas.update()
         elif event.keysym == 'plus':
+            if max(max(self.orientation), -min(self.orientation)) < 100:
+                self.zoom_grow()
             self.increase()
         elif event.keysym == 'minus':
+            if max(max(self.orientation), -min(self.orientation)) < 100:
+                self.zoom_grow()
             self.decrease()
         elif event.keysym in "oO":
             self.oc = not self.o
