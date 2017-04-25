@@ -737,6 +737,7 @@ class Part(Figure):
         return pin
 
     def mouse_pressed(self, event,ctrl=False,shift=False):
+        self.canvas.focus_set()
         x,y = event.widget.canvasx(event.x),event.widget.canvasy(event.y)
         global canvas_lasso
         canvas_lasso = False
