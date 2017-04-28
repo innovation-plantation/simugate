@@ -984,10 +984,11 @@ class OCDriver(Driver):
          self.oc = self.force_oc=True
 
 class Bus(circuit.Part):
-    def __init__(self, *args,label='', coords=(-2,-40, -2,40, 2,40, 2,-40), **kwargs):
+    def __init__(self, *args,label='', coords=(-10,-20, -10,20, 10,20, 10,-20), **kwargs):
         super().__init__(*args, label=label,coords=coords, **kwargs)
         self.pins = []
-        for y in 30,10,-10,-30: self.pins.append(self.add_pin(0,y,invertible=False))
+        #for y in 30,10,-10,-30: self.pins.append(self.add_pin(0,y,invertible=False))
+        self.pins.append(self.add_pin(0,0,invertible=False))
 
 
     def increase(self):
@@ -1000,8 +1001,8 @@ class Bus(circuit.Part):
             self.canvas.move(self.pins[i].group, 0, 10)
         self.pins.append(self.add_pin(0, -10 * n,invertible=False))
         x,y=self.xy
-        size = 10*(n+1)
-        coords = (x-2,y-size, x-2,y+size, x+2,y+size, x+2,y-size)
+        size = 10+10*(n+1)
+        coords = (x-10,y-size, x-10,y+size, x+10,y+size, x+10,y-size)
         self.canvas.coords(self.shape, *coords)
         self.canvas.coords(self.glow, *coords)
         self.orientation = orient
@@ -1010,7 +1011,7 @@ class Bus(circuit.Part):
 
     def decrease(self):
         n = len(self.pins)
-        if n<=4: return
+        if n<=1: return
         if max(max(self.orientation), -min(self.orientation)) != 100: return
         if any(self.pins[k].has_wires_connected() for k in range(n-1,n)): return
         if max(max(self.orientation), -min(self.orientation)) != 100: return
@@ -1025,8 +1026,8 @@ class Bus(circuit.Part):
             self.canvas.move(self.pins[k].group, 0, -10)
 
         x,y=self.xy
-        size = 10*(n-1)
-        coords = (x-2,y-size, x-2,y+size, x+2,y+size, x+2,y-size)
+        size = 10+10*(n-1)
+        coords = (x-10,y-size, x-10,y+size, x+10,y+size, x+10,y-size)
         self.canvas.coords(self.shape, *coords)
         self.canvas.coords(self.glow, *coords)
 
