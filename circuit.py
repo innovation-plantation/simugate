@@ -648,15 +648,11 @@ class Part(Figure):
         y100 = list(map(float,y0))
         x,y = list(map(float,self.canvas.coords(self.pivot)))
         result = x100[0]-x, x100[1]-y, y100[0]-x, y100[1]-y
-        print("pivot",x,y,"transformed x",x0,"transforned y",y0,self)
         return result
     @orientation.setter
     def orientation(self,t):
-        print("Orient",t)
-        print (self.orientation,"current orientation")
         normalized_desired_orientation = t
         normalized_orientation = self.orientation
-
         a = list(normalized_desired_orientation)
         b = inv2x2(normalized_orientation)
         xx,xy,yx,yy = mul2x2(a,b)
