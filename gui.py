@@ -25,6 +25,12 @@ def do_gui():
     menu = tkinter.Menu(tk)
 
 
+    def rotate_oblique_parts():
+        for part in circuit.Part.allparts:
+            if part.selected:
+                part.rotate_oblique()
+                # x,y = part.xy
+
     def zoom_in_parts():
         for part in circuit.Part.allparts:
             if part.selected:
@@ -37,7 +43,7 @@ def do_gui():
 
     def zoom_out_parts():
         for part in circuit.Part.allparts:
-            if part.selected and abs(part.orientation[0]) +  abs(part.orientation[1]) > 10:
+            if part.selected and abs(part.orientation[0]) +  abs(part.orientation[1]) > .1:
                 part.zoom_shrink()
                 # x, y = part.xy
                 # part.canvas.move(part.group, -x, -y)
@@ -47,11 +53,11 @@ def do_gui():
 
     def zoom_in():
         canvas = circuit.Figure.default_canvas
-        canvas.scale(tkinter.ALL, 0,0, 2,2)
+        canvas.scale(tkinter.ALL, 0.,0., 2.,2.)
 
     def zoom_out():
         canvas = circuit.Figure.default_canvas
-        canvas.scale(tkinter.ALL, 0,0, .5,.5)
+        canvas.scale(tkinter.ALL, 0.,0., .5,.5)
 
     def toggle_open_collector():
         for part in circuit.Part.allparts:
@@ -182,6 +188,7 @@ def do_gui():
         ('Zoom out', zoom_out),
         ('Grow parts', zoom_in_parts),
         ('Shrink parts', zoom_out_parts),
+        ('Oblique', rotate_oblique_parts),
     ]:
         m_view.add_command(label=item[0], command=item[1])
 

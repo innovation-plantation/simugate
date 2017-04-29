@@ -50,13 +50,12 @@ class Gate(circuit.Part):
 
     def decrease(self):
         n = len(self.i)
-        if n>2 and hasattr(self, 'scaled_shape') and not self.i[n-1].has_wires_connected() and max(max(self.orientation),-min(self.orientation))==100:
-            # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
+        if n>2 and hasattr(self, 'scaled_shape') and not self.i[n-1].has_wires_connected():
             n-=1
             self.i[n].remove()
             self.i.pop(n)
             orient = self.orientation
-            self.orientation = 100, 000, 000, 100
+            self.orientation = 1,0,0,1
             if n == 2:
                 self.canvas.move(self.i[1].group, 0, 20)
             else:
@@ -75,10 +74,9 @@ class Gate(circuit.Part):
 
     def increase(self):
         n = len(self.i)
-        if n>1 and hasattr(self, 'scaled_shape') and max(max(self.orientation),-min(self.orientation))==100:
-            # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
+        if n>1 and hasattr(self, 'scaled_shape'):
             orient = self.orientation
-            self.orientation = 100,000,000,100
+            self.orientation = 1,000,000,1
             if n==2:
                 self.canvas.move(self.i[1].group, 0, -20)
                 self.i.append(self.add_pin(-65, 20, dx=25))
@@ -380,10 +378,8 @@ class Box(circuit.Part):
     def increment_height(self,lhs=None,rhs=None,extra_lhs=[],extra_rhs=[],extra_bottom=[],bottom_label_fn=lambda n:'s%d' % 2 ** n,left_label_fn=lambda n:n,right_label_fn=lambda n:n):
         n = len(lhs) if lhs else len(rhs) if rhs else 0
         if n>128 or n<1: return
-        if max(max(self.orientation), -min(self.orientation)) != 100: return
-        # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
         orient = self.orientation
-        self.orientation = 100, 000, 000, 100
+        self.orientation = 1,0,0,1
         oldwidth,oldheight  = self.width,self.height
         self.resize_shape(None, height=n+1 if n else None)
 
@@ -404,13 +400,10 @@ class Box(circuit.Part):
     def decrement_height(self,lhs=None,rhs=None,extra_lhs=[],extra_rhs=[],extra_bottom=[],bottom_label_fn=lambda n:'s%d' % 2 ** n,left_label_fn=lambda n:n,right_label_fn=lambda n:n):
         n = len(lhs) if lhs else len(rhs) if rhs else 0
         if n<=4: return
-        if max(max(self.orientation), -min(self.orientation)) != 100: return
         if rhs is not None and any(rhs[k].has_wires_connected() for k in range(n-1,n)): return
         if lhs is not None and any(lhs[k].has_wires_connected() for k in range(n-1,n)): return
-        if max(max(self.orientation), -min(self.orientation)) != 100: return
-        # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
         orient = self.orientation
-        self.orientation = 100, 000, 000, 100
+        self.orientation = 1,0,0,1
         oldwidth, oldheight = self.width, self.height
         self.resize_shape(height=n - 1 if n else None, width=None)
 
@@ -443,10 +436,8 @@ class Box(circuit.Part):
         n = len(addr) if addr else 0
         m = len(lhs) if lhs else len(rhs) if rhs else 0
         if n>7 or m>128: return
-        if max(max(self.orientation), -min(self.orientation)) != 100: return
-        # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
         orient = self.orientation
-        self.orientation = 100, 000, 000, 100
+        self.orientation = 1,0,0,1
         oldwidth,oldheight  = self.width,self.height
         self.resize_shape(width=n + 1 if n else None, height=m+m if m else None)
         if n:
@@ -476,14 +467,11 @@ class Box(circuit.Part):
         m = len(lhs) if lhs else len(rhs) if rhs else 0
         if n!=0 and n<=2: return
         if m!=0 and m<=4: return
-        if max(max(self.orientation), -min(self.orientation)) != 100: return
         if rhs is not None and any(rhs[k].has_wires_connected() for k in range(m//2,m)): return
         if lhs is not None and any(lhs[k].has_wires_connected() for k in range(m//2,m)): return
         if n!=0 and addr[n-1].has_wires_connected(): return
-        if max(max(self.orientation), -min(self.orientation)) != 100: return
-        # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
         orient = self.orientation
-        self.orientation = 100, 000, 000, 100
+        self.orientation = 1,0,0,1
         oldwidth, oldheight = self.width, self.height
         self.resize_shape(width=n - 1 if n else None, height=m//2 if m else None)
         if n:
@@ -768,7 +756,6 @@ class Adder(Box):
         pins = self.create_left_pins([""] * size + [None] + [""] * size)
         self.a,self.b= pins[:size],pins[size:]
         *self.o,self.c = self.create_right_pins([""]*size+[None]+[""])
-        print(self.o)
 
     def operate(self):
         if not hasattr(self,'c'): return
@@ -993,10 +980,8 @@ class Bus(circuit.Part):
 
     def increase(self):
         n = len(self.pins)
-        #if n > 1 and hasattr(self, 'scaled_shape') and max(max(self.orientation), -min(self.orientation)) == 100:
-        # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
         orient = self.orientation
-        self.orientation = 100, 000, 000, 100
+        self.orientation = 1, 0, 0, 1
         for i in range(n):
             self.canvas.move(self.pins[i].group, 0, 10)
         self.pins.append(self.add_pin(0, -10 * n,invertible=False))
@@ -1012,12 +997,9 @@ class Bus(circuit.Part):
     def decrease(self):
         n = len(self.pins)
         if n<=1: return
-        if max(max(self.orientation), -min(self.orientation)) != 100: return
         if any(self.pins[k].has_wires_connected() for k in range(n-1,n)): return
-        if max(max(self.orientation), -min(self.orientation)) != 100: return
-        # bug workaround: orientation setting fails when scale is not 100%, so don't allow it in that case
         orient = self.orientation
-        self.orientation = 100, 000, 000, 100
+        self.orientation = 1, 0, 0, 1
         k = n-1
         self.pins[k].remove()
         self.pins.pop(k)
@@ -1151,12 +1133,11 @@ class Programmer(circuit.Part):
         self.canvas.create_window(x,y, window=self.button, tags=self.group)
     def program_part(self):
         text = self.editor.get("1.0", "end-1c")
-        print(text)
-        if True:
+        try:
             prog = eval("{%s}"%text)
             ROM(self.xy[0] + 100, self.xy[1], data=prog)
-        # except:
-        #     self.editor.insert(tkinter.INSERT, '?')
+        except:
+            self.editor.insert(tkinter.INSERT, '?')
 
 
 class RegisterFile(Box):

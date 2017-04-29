@@ -38,8 +38,8 @@ def write_file(file, selected=False):
                            ' '.join([pinnum(pin) for segment in netlist.groups[n] for pin in segment])
                        for n in range(len(netlist.groups))}
     config['ORIENT'] = {part:
-                           "%d %d %d %d"%part.orientation
-                       for part in allparts if part.orientation != (100,0,0,100) }
+                           "%d %d %d %d"%tuple(part.orientation100)
+                       for part in allparts if part.orientation != (1,0,0,1) }
 
     config['PROG'] = {part: part.prog_data
                        for part in allparts if 'prog_data' in dir(part)}
@@ -88,7 +88,7 @@ def load_from_config(config, dx=0, dy=0):
                     unit.oc_type =  config['OC'][partrecord]
                 if 'ORIENT' in config and partrecord in config['ORIENT']:
                     orientdata = [int(num) for num in config['ORIENT'][partrecord].split(' ') if len(num.strip()) > 0]
-                    unit.orientation = orientdata
+                    unit.orientation100 = orientdata
                 if 'PROG' in config and partrecord in config['PROG']:
                     unit.prog_data = config['PROG'][partrecord]
             except:

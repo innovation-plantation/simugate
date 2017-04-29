@@ -114,9 +114,9 @@ class Figure(Item):
 
         canvas.create_bitmap(0, 0, tags=(self.pivot, self.group), bitmap='gray12',
                              state=tkinter.DISABLED if debug else tkinter.HIDDEN)
-        canvas.create_bitmap(100, 0, tags=(self.x100, self.group), bitmap='gray12',
+        canvas.create_bitmap(1.00, 0, tags=(self.x100, self.group), bitmap='gray12',
                              state=tkinter.DISABLED if debug else tkinter.HIDDEN)
-        canvas.create_bitmap(0, 100, tags=(self.y100, self.group), bitmap='gray12',
+        canvas.create_bitmap(0, 1.00, tags=(self.y100, self.group), bitmap='gray12',
                              state=tkinter.DISABLED if debug else tkinter.HIDDEN)
         scaled_coords = [coords[i] * scale[i & 1] for i in range(len(coords))]
         canvas.create_polygon(scaled_coords, tags=(self.glow, self.group), fill='yellow', outline='yellow', width=width+5,state=tkinter.HIDDEN,
@@ -126,7 +126,9 @@ class Figure(Item):
         for child in self.children:
             canvas.addtag_withtag(self.group, child.id)
         if parent: x, y = x + parent.x, y + parent.y
+        print("CREATED WITH ORIENTATION",self.canvas.coords(self.x100),self.canvas.coords(self.y100),self)
         canvas.move(self.group, x, y)
+        print("MOVED TO",self.canvas.coords(self.x100),self.canvas.coords(self.y100),self)
         canvas.update()
 
 
@@ -431,6 +433,7 @@ class Pin(Figure):
         Pin.proto = ProtoWire(self, self.canvas.canvasx(event.x), self.canvas.canvasy(event.y))
 
     def mouse_move(self, event):
+        if Pin.proto is None: return
         Pin.proto.move(self.canvas.canvasx(event.x), self.canvas.canvasy(event.y))
 
     def near_regex(self, x, y, regex, dx=50, dy=50):
@@ -516,10 +519,14 @@ class Pin(Figure):
 
 def clockwise(a, x=0, y=0): return [w for pair in zip(*(a[::2], a[1::2])) for w in [x + y - pair[1], y + pair[0] - x]]
 
+def oblique(a,x=0,y=0,radians=math.pi/4):
+    c=math.cos(radians)
+    s=math.sin(radians)
+    return [w for pair in zip(*(a[::2], a[1::2])) for w in [x+c*(pair[0]-x) - s*(pair[1]-y), y + s*(pair[0]-x) + c*(pair[1]-y)]]
 
 def flip(a, x=0, y=0): return [w for pair in zip(*(a[::2], a[1::2])) for w in [pair[0], y + y - pair[1]]]
 
-def stretch(a, factor,  x=0, y=0 ): return [w for pair in zip(*(a[::2], a[1::2])) for w in [pair[0], y +  factor*(pair[1]-y)]]
+#def stretch(a, factor,  x=0, y=0 ): return [w for pair in zip(*(a[::2], a[1::2])) for w in [pair[0], y +  factor*(pair[1]-y)]]
 
 def mirror(a, x=0, y=0): return [w for pair in zip(*(a[::2], a[1::2])) for w in [x + x - pair[0], pair[1]]]
 
@@ -532,7 +539,8 @@ def inv2x2(m):
     '2x2 matrix inversion'
     a, b, c, d =m
     det = a*d-b*c
-    return d*det,-b*det, -c*det, a*det
+    det1 = 1/det
+    return d*det1,-b*det1, -c*det1, a*det1
 def mul2x2(m1,m2):
     a,b,c,d = m1
     e,f,g,h = m2
@@ -634,25 +642,44 @@ class Part(Figure):
 
     @property
     def orientation(self):
-        x100 = list(map(int,self.canvas.coords(self.x100)))
-        y100 = list(map(int,self.canvas.coords(self.y100)))
-        x,y = list(map(int,self.canvas.coords(self.pivot)))
-        return x100[0]-x, x100[1]-y, y100[0]-x, y100[1]-y
+        x0 = self.canvas.coords(self.x100)
+        y0 = self.canvas.coords(self.y100)
+        x100 = list(map(float,x0))
+        y100 = list(map(float,y0))
+        x,y = list(map(float,self.canvas.coords(self.pivot)))
+        result = x100[0]-x, x100[1]-y, y100[0]-x, y100[1]-y
+        print("pivot",x,y,"transformed x",x0,"transforned y",y0,self)
+        return result
     @orientation.setter
     def orientation(self,t):
-        a = list(map(lambda x:x/100,t))
-        b = inv2x2(map(lambda x:x/100,self.orientation))
+        print("Orient",t)
+        print (self.orientation,"current orientation")
+        normalized_desired_orientation = t
+        normalized_orientation = self.orientation
+
+        a = list(normalized_desired_orientation)
+        b = inv2x2(normalized_orientation)
         xx,xy,yx,yy = mul2x2(a,b)
         x0,y0 =  self.canvas.coords(self.canvas.find_withtag(self.pivot))
+
         for item in self.canvas.find_withtag(self.group):
             coords = self.canvas.coords(item)
+            oldcoords = coords[:]
             for i in range(0,len(coords),2):
-                x,y = coords[i]-x0,coords[i+1]-y0
+                x,y = oldcoords[i]-x0,oldcoords[i+1]-y0
                 x,y = xx*x+yx*y, xy*x+yy*y
                 coords[i],coords[i+1] = x+x0,y+y0
+            if any (not (-10000<coord<10000) for coord in coords):
+                    print("TkInter coord error",coords,"processing",self)
+                    break
             self.canvas.coords(item,coords)
 
-
+    @property
+    def orientation100(self):
+        return map(lambda x:x*100,self.orientation)
+    @orientation100.setter
+    def orientation100(self,value):
+        self.orientation = list(map(lambda x: x/100.0, value))
     @staticmethod
     def clear_selection():
         part_list = [part for sn,part in Part.sn_part.items()]
@@ -795,11 +822,11 @@ class Part(Figure):
             self.canvas.update()
         elif event.keysym == 'plus':
             if max(max(self.orientation), -min(self.orientation)) < 100:
-                self.zoom_grow()
+                pass#self.zoom_grow()
             self.increase()
         elif event.keysym == 'minus':
             if max(max(self.orientation), -min(self.orientation)) < 100:
-                self.zoom_grow()
+                pass#self.zoom_grow()
             self.decrease()
         elif event.keysym in "oO":
             self.oc = not self.o
@@ -830,6 +857,15 @@ class Part(Figure):
         self.canvas.move(self.group, dx, dy)
         self.move_wires()
 
+    def rotate_oblique(self):
+        if self.canvas:
+            x, y = self.canvas.coords(self.pivot)
+            for n in self.canvas.find_withtag(self.group):
+                self.canvas.coords(n, oblique(self.canvas.coords(n), x, y))
+            self.move_wires()
+            self.canvas.update()
+        return self
+
     def rotate_cw(self):
         if self.canvas:
             x, y = self.canvas.coords(self.pivot)
@@ -857,14 +893,14 @@ class Part(Figure):
             self.canvas.update()
         return self
 
-    def stretch(self,factor):
-        if self.canvas:
-            x, y = self.canvas.coords(self.pivot)
-            for n in self.canvas.find_withtag(self.shape):
-                self.canvas.coords(n, stretch(self.canvas.coords(n), factor, x, y))
-            self.move_wires()
-            self.canvas.update()
-        return self
+    # def stretch(self,factor):
+    #     if self.canvas:
+    #         x, y = self.canvas.coords(self.pivot)
+    #         for n in self.canvas.find_withtag(self.shape):
+    #             self.canvas.coords(n, stretch(self.canvas.coords(n), factor, x, y))
+    #         self.move_wires()
+    #         self.canvas.update()
+    #     return self
 
     def flip(self):
         if self.canvas:
@@ -945,5 +981,5 @@ if __name__ == '__main__':
 
     p100.canvas.update()
 
-    print(p100.group)
+    #print(p100.group)
     tkinter.mainloop()
