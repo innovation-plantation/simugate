@@ -775,7 +775,6 @@ class ALU(Adder):
     #  16 functions such as ADD SUB ADC SBC  SLC SRC RLC RRC  AND OR XOR NOT  XFER STC CMC CLR
     def __init__(self, *args, size=4, **kwargs):
         fnsize=4
-        height=fnsize
         super().__init__(*args, size=size, **kwargs)
         self.f = []
         for bit in range(fnsize):
@@ -783,6 +782,7 @@ class ALU(Adder):
             y = 20*self.size+fnsize*5+20#120
             self.f.append(self.add_pin(x, y, dy=-15 - 10 * (fnsize - bit), label='s%d' % 2 ** bit))
         self.old_c = 'X'
+
 
     def operate(self):
         if not hasattr(self,'c'): return
@@ -796,6 +796,8 @@ class ALU(Adder):
                 raise
             a = sample_pins(self.a) if argc > 0 else 0
             b = sample_pins(self.b) if argc > 1 else 0
+            print("SIZE",self.size)
+            print(self.o)
             r, c = alu.alu_fn(f, a, b, self.size)
             set_pins(self.o, r)
             if c is None:

@@ -126,9 +126,7 @@ class Figure(Item):
         for child in self.children:
             canvas.addtag_withtag(self.group, child.id)
         if parent: x, y = x + parent.x, y + parent.y
-        print("CREATED WITH ORIENTATION",self.canvas.coords(self.x100),self.canvas.coords(self.y100),self)
         canvas.move(self.group, x, y)
-        print("MOVED TO",self.canvas.coords(self.x100),self.canvas.coords(self.y100),self)
         canvas.update()
 
 
