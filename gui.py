@@ -14,6 +14,7 @@ def somewhere():
 
 def do_gui():
     tk = tkinter.Tk()
+    tk.title("SimuGate")
     can = circuit.Figure.default_canvas = tkinter.Canvas(tk, height=tk.winfo_screenheight(),
                                                          width=tk.winfo_screenwidth(), scrollregion=(0, 0, 5000, 5000))
     h = tkinter.Scrollbar(tk, command=can.xview, orient=tkinter.HORIZONTAL);

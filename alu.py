@@ -4,11 +4,11 @@ def split_carry(a, n=4):
 
 
 alu_config = {  # function, name, number of input reigsters
-    0: (lambda a, b, n=4: (a, None,), 'XFER', 1),
-    1: (lambda a, b, n=4: (a ^ b, None), 'XOR', 2),
-    2: (lambda a, b, n=4: (a & b, None,), 'AND', 2),
-    3: (lambda a, b, n=4: (a | b, None), 'OR', 2),
-    4: (lambda a, b, n=4: (~a, None), 'NOT', 1),
+    0: (lambda a, b, n=4: (a, False,), 'XFER', 1),
+    1: (lambda a, b, n=4: (a ^ b, False), 'XOR', 2),
+    2: (lambda a, b, n=4: (a & b, False,), 'AND', 2),
+    3: (lambda a, b, n=4: (a | b, False), 'OR', 2),
+    4: (lambda a, b, n=4: (~a, False), 'NOT', 1),
     5: (lambda a, b, n=4: split_carry(-a, n), 'NEG', 1),
     6: (lambda a, b, n=4: split_carry(a+1), 'INC', 1),
     7: (lambda a, b, n=4: split_carry(a-1), 'DEC', 1),
