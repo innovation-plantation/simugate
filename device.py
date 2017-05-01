@@ -796,8 +796,6 @@ class ALU(Adder):
                 raise
             a = sample_pins(self.a) if argc > 0 else 0
             b = sample_pins(self.b) if argc > 1 else 0
-            print("SIZE",self.size)
-            print(self.o)
             r, c = alu.alu_fn(f, a, b, self.size)
             set_pins(self.o, r)
             if c is None:
@@ -1070,6 +1068,7 @@ class Keyboard(Box):
         self.hit = '0'
 
     def operate(self):
+        if not 'o' in dir(self): return
         set_pins(self.o,self.keycode)
         clear = sample(self.clear)
         if clear in "1H":
