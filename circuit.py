@@ -928,6 +928,8 @@ class Part(Figure):
         self.canvas.delete(self.group)
         return self.id
 
+pending = False
+rerun = True
 
 def run():
     for pin in Pin.get_all(): pin.operate_input()
@@ -938,8 +940,23 @@ def run():
     Part.default_canvas.update()
     # for diode in device.Diode.get_all():
     #     diode.operate()
-    Figure.default_canvas.after(200, run)
+    global rerun, pending
+    if rerun:
+        Figure.default_canvas.after(200, run)
+        if not pending:
+            print("started")
+            pending = True
+    else:
+        pending = False
+        print("paused")
     return Part.default_canvas
+
+def pause(value):
+    global rerun, pending
+    print("Pause..." if value else "Start...",end="")
+    rerun = not value
+    if rerun and not pending: run()
+
 
 
 if __name__ == '__main__':

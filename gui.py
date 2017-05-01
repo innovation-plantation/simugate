@@ -15,6 +15,10 @@ def somewhere():
 def do_gui():
     tk = tkinter.Tk()
     tk.title("SimuGate")
+
+    pause = tkinter.BooleanVar()
+    pause.set(False)
+
     can = circuit.Figure.default_canvas = tkinter.Canvas(tk, height=tk.winfo_screenheight(),
                                                          width=tk.winfo_screenwidth(), scrollregion=(0, 0, 5000, 5000))
     h = tkinter.Scrollbar(tk, command=can.xview, orient=tkinter.HORIZONTAL);
@@ -25,6 +29,8 @@ def do_gui():
 
     menu = tkinter.Menu(tk)
 
+    def change_pause():
+        circuit.pause(pause.get())
 
     def rotate_oblique_parts():
         for part in circuit.Part.allparts:
@@ -194,6 +200,9 @@ def do_gui():
     ]:
         m_view.add_command(label=item[0], command=item[1])
 
+    m_sim = tkinter.Menu(tk)
+
+    m_sim.add_checkbutton(label="Pause", onvalue=True, offvalue=False, variable=pause,command=change_pause)
 
     # add the dropdowns and items to the menu
     main_menu.add_cascade(label="File", menu=m_file)
@@ -208,6 +217,7 @@ def do_gui():
     menu.add_cascade(label="Combinatorial", menu=m_adva)
     menu.add_cascade(label="State", menu=m_stor)
     main_menu.add_command(label="Label", command=lambda:device.Labeler(*somewhere()))
+    main_menu.add_cascade(label="Simulaton", menu=m_sim)
 
     # add the full menu to the canvas and run
     tk.config(menu=main_menu)
