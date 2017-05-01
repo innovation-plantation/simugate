@@ -171,6 +171,7 @@ def do_gui():
         ('SR Flip-Flop (Level-triggered)', device.SR_flipflop),
         ('D Flip-Flop (Level-triggered)', device.D_flipflop),
         ('D Flip-Flop (Edge-triggered)', device.D_edge),
+        ('D Flip-Flop (Edge-triggered with async. reset)', device.D_edge_rst),
         # multi-bit
         ('Latch', device.Latch),
         ('Register File', device.RegisterFile),

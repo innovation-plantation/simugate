@@ -737,6 +737,28 @@ class D_edge(Box):
         self.q.out_value = self.m
         self.old_clk = clk
 
+class D_edge_rst(Box):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, width=2, height=2, label='')
+        self.clk,self.rst = self.create_bottom_pins(['^','RST'])
+        self.d= self.create_left_pin('D')
+        self.q = self.create_right_pin('Q')
+        self.old_clk = 'X'
+        self.m = 'X'
+
+    def operate(self):
+        if not hasattr(self,'rst'): return
+        rst = sample(self.rst)
+        clk = sample(self.clk)
+        if rst=='1':
+            self.m = '0'
+        else:
+            d = sample(self.d)
+            if self.old_clk == '0' and clk == '1': self.m = d
+        self.q.out_value = self.m
+        self.old_clk = clk
+
+
 def adder_shape(size):
     return [-40, -20-20*size,
                   40, 20-20*size,
