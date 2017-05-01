@@ -1145,6 +1145,7 @@ class Programmer(circuit.Part):
         return json.dumps(self.editor.get("1.0", "end-1c"))
     @prog_data.setter
     def prog_data(self,value):
+        self.editor.delete("1.0", "end-1c")
         self.editor.insert(tkinter.INSERT, json.loads(value))
     def __init__(self, *args,shape=[-50,-30, 50,-30,250,0, 250,300, -50,300],label='',**kwargs):
         super().__init__(*args,coords=shape,label=label,**kwargs)
