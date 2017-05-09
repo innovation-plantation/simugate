@@ -95,6 +95,7 @@ def do_gui():
     for item in [
         ('Input Pin', device.InputPin),
         ('Output Pin', device.OutputPin),
+        ('Hex Display', device.HexDisplay),
         ('Character Display',device.CharDisplay),
         ('Keyboard', device.Keyboard),
     ]:

@@ -1045,6 +1045,28 @@ class Bus(circuit.Part):
 
 
 
+class HexDisplay(Box):
+    def __init__(self, *args, bits=4, **kwargs):
+        w, h = 3, 4
+        super().__init__(*args, label='', height=h-.5, width=w, vpad=0, **kwargs)
+        self.i = self.create_left_pins(['' for n in range(h)])
+        self.m = ['X'] * h
+
+    def operate(self):
+        self.canvas.itemconfig(self.label, font=('tkfixed',64))
+        for bit in range(len(self.m)):
+            self.m[bit] = logic.buffn(self.i[bit].in_value)
+            ch=0
+            for n in range(len(self.m)):
+                if self.m[n] in "1H":
+                    ch |= 1<<n
+        co = ord("0")
+        if (ch <= 9):
+            co = ord("0") + ch
+        elif (ch > 9):
+            co = ord("A") + ch - 10
+        self.rename(chr(co))
+
 
 class CharDisplay(Box):
     def __init__(self, *args, bits=7, **kwargs):
