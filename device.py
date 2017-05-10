@@ -1045,6 +1045,22 @@ class Bus(circuit.Part):
 
 
 
+class HexDisplay(Box):
+    def __init__(self, *args, bits=4, **kwargs):
+        super().__init__(*args, label='', height=bits-.5, width=3, vpad=0, **kwargs)
+        self.canvas.itemconfig(self.label, font=('tkfixed',64))
+        self.i = self.create_left_pins(['']*bits)
+
+    def operate(self):
+        try:
+            self.rename('%X'%sample_pins(self.i))
+        except LookupError:
+            for bit in range(len(self.i)):
+                if (self.i[bit].in_value not in "1HL0"):
+                    self.rename(self.i[bit].in_value)
+                    break
+
+
 
 class CharDisplay(Box):
     def __init__(self, *args, bits=7, **kwargs):
