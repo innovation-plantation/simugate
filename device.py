@@ -1047,30 +1047,19 @@ class Bus(circuit.Part):
 
 class HexDisplay(Box):
     def __init__(self, *args, bits=4, **kwargs):
-        w, h = 3, 4
-        super().__init__(*args, label='', height=h-.5, width=w, vpad=0, **kwargs)
-        self.i = self.create_left_pins(['' for n in range(h)])
-        self.m = ['X'] * h
+        super().__init__(*args, label='', height=bits-.5, width=3, vpad=0, **kwargs)
+        self.canvas.itemconfig(self.label, font=('tkfixed',64))
+        self.i = self.create_left_pins(['']*bits)
 
     def operate(self):
-        self.canvas.itemconfig(self.label, font=('tkfixed',64))
-        for bit in range(len(self.m)):
-            self.m[bit] = logic.buffn(self.i[bit].in_value)
-            ch=0
-            for n in range(len(self.m)):
-                if self.m[n] in "1H":
-                    ch |= 1<<n
-                elif self.m[n] not in "1HL0":
-                    ch = ord(self.m[n])
+        try:
+            self.rename('%X'%sample_pins(self.i))
+        except LookupError:
+            for bit in range(len(self.i)):
+                if (self.i[bit].in_value not in "1HL0"):
+                    self.rename(self.i[bit].in_value)
                     break
-        co = ord("0")
-        if (ch >= 0 and ch <= 9):
-            co = ord("0") + ch
-        elif (ch > 9 and ch <= 15):
-            co = ord("A") + ch - 10
-        else:
-            co = ch
-        self.rename(chr(co))
+
 
 
 class CharDisplay(Box):
