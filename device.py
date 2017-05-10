@@ -1060,11 +1060,16 @@ class HexDisplay(Box):
             for n in range(len(self.m)):
                 if self.m[n] in "1H":
                     ch |= 1<<n
+                elif self.m[n] not in "1HL0":
+                    ch = ord(self.m[n])
+                    break
         co = ord("0")
-        if (ch <= 9):
+        if (ch >= 0 and ch <= 9):
             co = ord("0") + ch
-        elif (ch > 9):
+        elif (ch > 9 and ch <= 15):
             co = ord("A") + ch - 10
+        else:
+            co = ch
         self.rename(chr(co))
 
 
