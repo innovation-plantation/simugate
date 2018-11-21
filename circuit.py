@@ -141,7 +141,7 @@ class ProtoWire(Item):
         self.canvas.create_line(*args, fill=logic.color[pin.in_value if pin.out_value == 'Z' else pin.out_value],
                                 width=logic.width[pin.in_value], dash=(4, 4), smooth=True, tags='proto_wire_fg')
 
-    def __del__(self):
+    def remove_from_canvas(self):
         self.canvas.delete('proto_wire_fg')
         self.canvas.delete('proto_wire_bg')
 
@@ -224,10 +224,16 @@ class Wire(Item):
         self.move()  # in case wire needs to be rerouted
 
     def remove(self):
-        ''' Remove the wire from the netlist, from the list of wire segments, and from the wire items pool '''
+        ''' Remove the wire
+        from the netlist,
+        from the list of wire segments,
+        from the wire items pool,
+        and from the canvas
+        '''
         netlist.disconnect(*(self.pins))
         Item.remove(self)
         Wire.segments.pop(self.pins)
+        self.remove_from_canvas()
         return self.id
     import math
     def get_coords(self):
@@ -259,7 +265,7 @@ class Wire(Item):
         if not debug: return self.id
         return self.id + ': ' + repr(self.pins) + '/' + repr(sorted(netlist.group_of(self.pins[0])))
 
-    def __del__(self):
+    def remove_from_canvas(self):
         self.canvas.delete(self.id)
         self.canvas.delete(self.insulation)
 
@@ -457,6 +463,7 @@ class Pin(Figure):
             self.route(closest)
             if closest != self:
                 Pin.previous_routed = [self.id,closest.id]
+        Pin.proto.remove_from_canvas()
         Pin.proto = None
 
     def mouse_double(self,event):
@@ -733,10 +740,6 @@ class Part(Figure):
         self.canvas.bind('<Key>', canvas_typed)
         self.canvas.focus_set()
 
-
-    def __del__(self):  # Non-deterministic - get rid of this source of bugs. Don't rely on the destructor getting clalled
-        print("NOT GOOD TO RELY ON __DEL__. NEED TO CALL DEL_PART DIRECTLY")
-        self.del_part()
     def del_part(self):
         Part.allparts.remove(self)
         Item.instances.remove(self)
