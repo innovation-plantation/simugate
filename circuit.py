@@ -12,6 +12,14 @@ import save
 debug = False
 log = print if debug else lambda *x: None
 
+def tr(T, *xy0):
+    ''' transform point x,y points using rotation matrix T'''
+    if len(T)==4: dx,dy=0,0
+    else: dx,dy=T[4:]
+    return [xy for sublist in ((
+        T[0] * xy[0] + T[2] * xy[1] +dx , T[1] * xy[0] + T[3] * xy[1] + dy
+    ) for xy in zip(xy0[::2],xy0[1::2])) for xy in sublist]
+    #returns T[0] * x0 + T[2] * y0, T[1] * x0 + T[3] * y0 ...
 
 class Item:
     '''An object that has an id, and a type (both are strings).
@@ -86,6 +94,7 @@ class Figure(Item):
                  fill='white',
                  outline='black',
                  width=2,
+                 quiet=False,
                  **kwargs
                  ):
 
@@ -127,7 +136,7 @@ class Figure(Item):
             canvas.addtag_withtag(self.group, child.id)
         if parent: x, y = x + parent.x, y + parent.y
         canvas.move(self.group, x, y)
-        canvas.update()
+        if not quiet: canvas.update()
 
 
 class ProtoWire(Item):
@@ -277,9 +286,13 @@ class Inversion(Figure):
 
     @inverted.setter
     def inverted(self, inverted):
+        silent = False
+        if hasattr(self,"_inverted"):
+            if inverted==self._inverted: return;
+        else: silent=not inverted
         self._inverted = inverted
         self.canvas.itemconfig(self.shape, fill='white' if inverted else '', outline='black' if inverted else '')
-        self.canvas.update()
+        if not silent: self.canvas.update()
         if hasattr(self,'inversion_listener') and self.inversion_listener: self.inversion_listener()
 
     def toggle_inversion(self):
@@ -290,8 +303,8 @@ class Inversion(Figure):
         canvas_lasso = False
         self.toggle_inversion()
 
-    def __init__(self, x, y, canvas=None, invertible=True, inverted=True, inversion_listener=None):
-        super().__init__(x, y, canvas=canvas, smooth=True)
+    def __init__(self, x, y, canvas=None, invertible=True, inverted=True, inversion_listener=None,quiet=not inverted):
+        super().__init__(x, y, canvas=canvas, smooth=True, quiet=quiet)
         self.inverted = inverted
         self.invertable = invertible
         if invertible:
@@ -369,10 +382,10 @@ class Pin(Figure):
 
     def __init__(self, x=0, y=0, dx=0, dy=0, scale=(.4, .4), smooth=False, fill='black',
                  edge_triggered=False, canvas=None, label='', inverted=False, invertible=True, input='Z', output='Z',
-                 inversion_listener=None, parent=None, **kwargs):
+                 inversion_listener=None, parent=None, quiet=True, **kwargs):
         self.invertible = invertible
         self.bubble=None
-        super().__init__(x, y, canvas=canvas, fill=fill, scale=scale, smooth=smooth, **kwargs)
+        super().__init__(x, y, canvas=canvas, fill=fill, scale=scale, smooth=smooth, quiet=True, **kwargs)
         self._in_value = 'Z'
         self._out_value = 'Z'
         self._oc = self._och = False
@@ -389,7 +402,7 @@ class Pin(Figure):
         leg_pt = x + Pin.adjust(dx, -10), y + Pin.adjust(dy, -10)
 
         self.bubble = Inversion(*leg_pt, inverted=inverted, invertible=invertible,
-                                inversion_listener=inversion_listener)
+                                inversion_listener=inversion_listener,quiet=not inverted)
         self.bubble.parent = self;
 
         text_pt = x + Pin.adjust(dx, 15), y + Pin.adjust(dy, 15)
