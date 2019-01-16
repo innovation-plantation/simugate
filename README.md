@@ -1,6 +1,8 @@
 # simugate
 Python simulation of logic gates, circuits, down to transistor level using IEEE 1164 std_logic levels
 
+(see also jsimugate at https://github.com/innovation-plantation/jsimugate for newer faster version written in java)
+
 Get the directory and run any of the following python programs: 
 * simugate.py  -  main program for designing gates, along with 2 exercise windows included in different ways
 * gui.py  -  main program without the two exercises
